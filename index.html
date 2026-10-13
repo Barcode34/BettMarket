@@ -1,0 +1,1357 @@
+<!doctype html>
+<html lang="sq">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BettMarket</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: ticket-style sticky header, then league rail | fixtures or match page | bet slip. Phone: rail becomes a chip scroller, slip becomes a bottom sheet. */
+:root{
+  --bg:#E6EDEA; --surface:#F6F9F8; --surface2:#DCE6E2; --ink:#0F2019; --muted:#53655D; --line:#C3D1CA;
+  --brand:#0A6B45; --brand-ink:#FFFFFF; --pick:#F2C230; --pick-ink:#1B1500;
+  --win:#0A7A44; --lose:#B33A2C; --shadow:0 6px 24px rgba(15,32,25,.14);
+  --f-display:'Big Shoulders Display','Arial Narrow',Impact,sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0A171B; --surface:#112228; --surface2:#183039; --ink:#E5F0EC; --muted:#8FA8A0; --line:#244048;
+    --brand:#33B27F; --brand-ink:#04140D; --pick:#F2C230; --pick-ink:#1B1500;
+    --win:#3ED08A; --lose:#FF8576; --shadow:0 6px 24px rgba(0,0,0,.45);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0A171B; --surface:#112228; --surface2:#183039; --ink:#E5F0EC; --muted:#8FA8A0; --line:#244048;
+  --brand:#33B27F; --brand-ink:#04140D; --pick:#F2C230; --pick-ink:#1B1500;
+  --win:#3ED08A; --lose:#FF8576; --shadow:0 6px 24px rgba(0,0,0,.45);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--f-body);font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--pick);outline-offset:2px}
+h1,h2,h3,p{margin:0}
+
+.strip{background:var(--ink);color:var(--bg);font-size:12px;text-align:center;padding:6px 16px}
+#hdr{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--surface);border-bottom:1px solid var(--line)}
+.hin{max-width:1320px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap}
+.logo{display:flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer}
+.lg-mark{width:26px;height:18px;border-radius:3px;background:
+  radial-gradient(circle at 0 50%,var(--surface) 3.2px,transparent 3.7px),
+  radial-gradient(circle at 100% 50%,var(--surface) 3.2px,transparent 3.7px),var(--pick)}
+.lg-txt{font:800 28px/1 var(--f-display);letter-spacing:.01em}
+.lg-txt b{color:var(--brand);font-weight:800}
+.hnav{display:flex;gap:4px}
+.hnav button{background:none;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--muted)}
+.hnav button.on{color:var(--ink);background:var(--surface2)}
+.hr{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bal{display:flex;flex-direction:column;line-height:1.1;text-align:right}
+.bal small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.bal b{font:600 17px var(--f-mono)}
+.who{font-weight:600;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lang{display:flex;background:var(--surface2);border-radius:6px;padding:2px;gap:2px}
+.lang button{border:0;background:none;padding:5px 9px;border-radius:5px;font:600 12px var(--f-mono);cursor:pointer;color:var(--muted)}
+.lang button.on{background:var(--surface);color:var(--ink)}
+
+.btn{font-weight:600;font-size:13px;padding:8px 14px;border-radius:6px;border:1px solid var(--line);background:var(--surface2);cursor:pointer}
+.btn:hover{border-color:var(--brand)}
+.btn.brand{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.btn.pick{background:var(--pick);color:var(--pick-ink);border-color:var(--pick)}
+.btn.ghost{background:none}
+.btn.big{padding:12px 18px;font-size:15px}
+.btn.full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.wrap{max-width:1320px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:210px minmax(0,1fr) 320px;align-items:start}
+#rail{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);display:flex;flex-direction:column;gap:2px;max-height:calc(100vh - 90px);overflow-y:auto}
+.gt{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:14px 0 4px;padding-inline:10px}
+.chip{display:flex;justify-content:space-between;gap:8px;align-items:center;text-align:left;background:none;border:0;border-radius:6px;padding:7px 10px;cursor:pointer}
+.chip:hover{background:var(--surface2)}
+.chip.on{background:var(--brand);color:var(--brand-ink);font-weight:600}
+.chip i{font:500 12px var(--f-mono);font-style:normal;opacity:.7}
+#main{min-width:0;display:flex;flex-direction:column;gap:16px}
+
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-h h2{font:800 24px/1.1 var(--f-display);letter-spacing:.02em;text-transform:uppercase}
+.sec-h span{color:var(--muted);font-size:13px}
+.lg-block{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.lg-h{display:flex;justify-content:space-between;gap:8px;padding:9px 14px;background:var(--surface2);font-weight:600;font-size:13px}
+.lg-h small{color:var(--muted);font-weight:400}
+.row{display:grid;grid-template-columns:64px minmax(0,1fr) 200px 44px;align-items:center;gap:8px 10px;padding:10px 14px;border-top:1px solid var(--line)}
+.rtime{font:600 13px var(--f-mono);color:var(--muted);background:none;border:0;padding:0;text-align:left;cursor:pointer}
+.rtime.live{color:var(--lose)}
+.rteams{display:flex;flex-direction:column;gap:2px;text-align:left;background:none;border:0;padding:0;cursor:pointer;min-width:0}
+.rteams span{display:flex;justify-content:space-between;gap:8px;min-width:0}
+.rteams em{font:600 14px var(--f-mono);font-style:normal}
+.rodds{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.rmore{background:none;border:1px solid var(--line);border-radius:6px;padding:6px 0;font:600 12px var(--f-mono);color:var(--muted);cursor:pointer}
+.rmore:hover{border-color:var(--brand);color:var(--ink)}
+
+.odd{display:flex;justify-content:space-between;align-items:center;gap:8px;min-width:0;padding:9px 11px;border:1px solid var(--line);border-radius:6px;background:var(--surface2);color:var(--ink);cursor:pointer;text-align:left}
+.odd:hover:not(:disabled){border-color:var(--brand)}
+.odd .ol{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}
+.odd .ov{font:600 14px var(--f-mono)}
+.odd.on{background:var(--pick);border-color:var(--pick);color:var(--pick-ink)}
+.odd.on .ol{color:inherit}
+.odd:disabled{opacity:.45;cursor:not-allowed}
+.rodds .odd{flex-direction:column;align-items:center;gap:1px;padding:6px 4px}
+
+.feat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px;border-left:6px solid var(--pick)}
+.feat .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.vs{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px}
+.vs .tm{font:800 clamp(24px,4.2vw,40px)/1 var(--f-display);text-transform:uppercase;overflow-wrap:anywhere}
+.vs .tm:last-child{text-align:right}
+.vs .mid{font:600 20px var(--f-mono);text-align:center;color:var(--muted)}
+.feat-odds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.feat-foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.note{color:var(--muted);font-size:12.5px}
+
+.sb{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:14px}
+.sb-top{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+.sb-grid{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:12px}
+.sb-grid .tm{font:800 clamp(22px,4vw,38px)/1.05 var(--f-display);text-transform:uppercase;overflow-wrap:anywhere}
+.sb-grid .tm:last-child{text-align:right}
+#score{display:flex;flex-direction:column;align-items:center;min-width:110px;gap:2px}
+#score b{font:700 44px/1 var(--f-mono)}
+#score .clock{font:600 30px/1 var(--f-mono)}
+#score .sub{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;text-align:center}
+#score .sub.live{color:var(--lose);font-weight:600}
+#evs{display:flex;flex-wrap:wrap;gap:6px 14px;font:500 12.5px var(--f-mono);color:var(--muted);min-height:0}
+#evs span b{color:var(--ink)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{background:none;border:0;border-bottom:3px solid transparent;padding:10px 14px;font-weight:600;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-color:var(--pick)}
+.mkt{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.mkt h3{font-size:13px;font-weight:600}
+.mgrid{display:grid;gap:8px}
+.mgrid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mgrid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.mlist{display:grid;gap:12px;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.mkt.wide{grid-column:1/-1}
+.lock{background:var(--surface2);border-radius:8px;padding:10px 14px;font-size:13px}
+
+#slip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);background:var(--surface);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;max-height:calc(100vh - 90px)}
+.slip-h{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.slip-h h2{font:800 20px/1 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.cnt{background:var(--pick);color:var(--pick-ink);font:600 12px var(--f-mono);border-radius:999px;padding:2px 8px}
+.slip-h .x{margin-left:auto;display:none;background:none;border:0;font-size:22px;line-height:1;cursor:pointer;color:var(--muted)}
+.slip-b{padding:12px 14px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--surface2);border-radius:8px;padding:3px;gap:3px}
+.seg button{border:0;background:none;padding:7px;border-radius:6px;font-weight:600;font-size:13px;cursor:pointer;color:var(--muted)}
+.seg button.on{background:var(--surface);color:var(--ink)}
+.seg button:disabled{opacity:.4;cursor:not-allowed}
+.sel{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:2px 10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.sel:first-child{border-top:0}
+.sel b{font-size:13.5px}
+.sel small{grid-column:1;color:var(--muted);font-size:12px;overflow-wrap:anywhere}
+.sel .o{font:600 14px var(--f-mono);grid-row:1;grid-column:2}
+.sel .rm{grid-row:1;grid-column:3;background:none;border:0;color:var(--muted);font-size:18px;cursor:pointer;line-height:1}
+.stake{display:flex;flex-direction:column;gap:6px}
+.stake label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.stake .in{display:flex;align-items:center;border:1px solid var(--line);border-radius:6px;background:var(--bg);padding-left:10px;font:600 15px var(--f-mono)}
+.stake input{flex:1;min-width:0;border:0;background:none;color:var(--ink);padding:10px;font:inherit;outline:none}
+.stake .in:focus-within{border-color:var(--pick)}
+.qs{display:flex;gap:6px;flex-wrap:wrap}
+.qs button{flex:1;min-width:48px;background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:6px;font:600 12.5px var(--f-mono);cursor:pointer}
+.tot{display:flex;flex-direction:column;gap:4px;font-size:13px}
+.tot div{display:flex;justify-content:space-between;gap:8px}
+.tot b{font-family:var(--f-mono)}
+.tot .big{font-size:15px;padding-top:6px;border-top:1px dashed var(--line)}
+.empty{color:var(--muted);padding:6px 0}
+#slipbar{display:none}
+
+.bet{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden;border-left:5px solid var(--line)}
+.bet.won{border-left-color:var(--win)}.bet.lost{border-left-color:var(--lose)}.bet.pending{border-left-color:var(--pick)}
+.bet header{display:flex;gap:10px;align-items:center;padding:9px 14px;background:var(--surface2);font-size:13px;flex-wrap:wrap}
+.bet header time{margin-left:auto;color:var(--muted);font:500 12px var(--f-mono)}
+.pill{font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.pill.won{color:var(--win)}.pill.lost{color:var(--lose)}.pill.pending{color:var(--muted)}
+.leg{display:grid;grid-template-columns:minmax(0,1fr) auto 12px;gap:10px;align-items:center;padding:9px 14px;border-top:1px solid var(--line)}
+.leg small{display:block;color:var(--muted);font-size:12px}
+.leg .o{font:600 13px var(--f-mono)}
+.dt{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.dt.won{background:var(--win)}.dt.lost{background:var(--lose)}
+.bet footer{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:13px}
+.bet footer b{font-family:var(--f-mono)}
+.blist{display:flex;flex-direction:column;gap:12px}
+
+#modal{position:fixed;inset:0;z-index:60;background:rgba(5,12,10,.62);display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;width:100%;max-width:400px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:14px;max-height:100%;overflow-y:auto}
+.card h2{font:800 26px/1 var(--f-display);text-transform:uppercase}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.fld input{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;border-radius:6px;font:inherit}
+.fld input:focus{outline:2px solid var(--pick);outline-offset:0}
+.err{color:var(--lose);font-size:13px}
+.hintbox{background:var(--surface2);border-radius:8px;padding:9px 12px;font-size:12.5px;color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13.5px;z-index:80;max-width:calc(100% - 32px);box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
+.foot{max-width:1320px;margin:0 auto;padding:8px 16px 28px;color:var(--muted);font-size:12.5px}
+
+@media (max-width:1040px){
+  .wrap{grid-template-columns:minmax(0,1fr);padding-bottom:96px}
+  #rail{position:static;flex-direction:row;overflow-x:auto;max-height:none;gap:6px;padding-bottom:4px}
+  #rail .gt{display:none}
+  .chip{white-space:nowrap;border:1px solid var(--line);flex:none;gap:10px}
+  #slip{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:50;border-radius:14px 14px 0 0;max-height:82%;transform:translateY(105%);padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:var(--shadow);visibility:hidden}
+  #slip.open{transform:none;visibility:visible}
+  .slip-h .x{display:block}
+  #slipbar.show{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;justify-content:space-between;align-items:center;gap:10px;background:var(--pick);color:var(--pick-ink);padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));border:0;font-weight:600;cursor:pointer;width:100%}
+  #slipbar b{font-family:var(--f-mono)}
+  .mlist{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:640px){
+  .row{grid-template-columns:52px minmax(0,1fr) 40px;grid-template-areas:"t n m" "o o o"}
+  .rtime{grid-area:t}.rteams{grid-area:n}.rodds{grid-area:o}.rmore{grid-area:m}
+  .vs .tm,.sb-grid .tm{font-size:22px}
+  #score b{font-size:34px}
+  #score{min-width:84px}
+  .mgrid.c3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .hr{margin-left:0;width:100%;justify-content:space-between}
+}
+@media (prefers-reduced-motion:no-preference){
+  #slip{transition:transform .22s ease,visibility .22s}
+}
+
+:root{--paper:#F1F2E8;--paper-ink:#16221B;--paper-mute:#667269;--paper-line:#B7BDB0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#DDE2D6;--paper-ink:#121A16;--paper-mute:#586259;--paper-line:#A2AA9E}}
+:root[data-theme="dark"]{--paper:#DDE2D6;--paper-ink:#121A16;--paper-mute:#586259;--paper-line:#A2AA9E}
+.ctry{display:flex;flex-direction:column;gap:2px}
+.ctry-b{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;border-radius:6px;padding:8px 10px;cursor:pointer;text-align:left;font-weight:600}
+.ctry-b:hover,.ctry-b.on{background:var(--surface2)}
+.ctry-b i{margin-left:auto;font:500 12px var(--f-mono);font-style:normal;opacity:.7}
+.car{width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;flex:none}
+.ctry.open .car{transform:rotate(45deg)}
+.ctry-l{display:none;flex-direction:column;gap:2px;padding-left:20px}
+.ctry.open .ctry-l{display:flex}
+.fl{width:22px;height:15px;border-radius:2px;flex:none;box-shadow:0 0 0 1px var(--line);display:block}
+.cal{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.day{flex:none;min-width:66px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer}
+.day small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.day b{font:700 20px/1.1 var(--f-display)}
+.day.today:not(.on){border-color:var(--brand)}
+.day.on{background:var(--pick);border-color:var(--pick);color:var(--pick-ink)}
+.day.on small{color:inherit}
+.tklist{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr));gap:26px 18px;padding-block:8px}
+.tk{background:var(--paper);color:var(--paper-ink);font:12.5px/1.4 var(--f-mono);padding:16px 16px 14px;position:relative;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tk::before,.tk::after{content:"";position:absolute;left:0;right:0;height:8px}
+.tk::before{top:-8px;background:radial-gradient(circle at 6px 8px,var(--paper) 6px,transparent 6.5px) 0 0/12px 8px repeat-x}
+.tk::after{bottom:-8px;background:radial-gradient(circle at 6px 0,var(--paper) 6px,transparent 6.5px) 0 0/12px 8px repeat-x}
+.tk-h{text-align:center;display:flex;flex-direction:column;gap:2px;padding-bottom:10px;border-bottom:1px dashed var(--paper-line)}
+.tk-b{font:800 32px/1 var(--f-display);letter-spacing:.06em;text-transform:uppercase}
+.tk-m{color:var(--paper-mute);font-size:11.5px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tk-leg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 10px;padding-bottom:8px;border-bottom:1px dotted var(--paper-line)}
+.tk-leg b{font-weight:600}
+.tk-leg small{grid-column:1/-1;color:var(--paper-mute);font-size:11.5px;overflow-wrap:anywhere}
+.tk-leg .r{font-weight:600}
+.tk-leg .r.won{text-decoration:underline}
+.tk-tot{display:flex;flex-direction:column;gap:3px}
+.tk-tot div{display:flex;justify-content:space-between;gap:8px}
+.tk-tot .big{font-weight:600;font-size:14px;padding-top:4px;border-top:1px dashed var(--paper-line)}
+.tk-st{align-self:center;border:2px solid currentColor;border-radius:4px;padding:2px 12px;font:800 20px/1.1 var(--f-display);letter-spacing:.1em;text-transform:uppercase;transform:rotate(-4deg)}
+.tk-st.won{color:#0A6B35}.tk-st.lost{color:#A8321F}.tk-st.pending{color:var(--paper-mute)}
+.bc{width:100%;height:42px;display:block;color:var(--paper-ink)}
+.tk-f{text-align:center;color:var(--paper-mute);font-size:11px}
+.tk-act{display:flex;justify-content:center}
+.tk-act .btn{background:var(--paper-ink);color:var(--paper);border-color:var(--paper-ink)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.panel h3{font:800 20px/1 var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end}
+.fld select{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;border-radius:6px;font:inherit;min-width:0;width:100%}
+.tbl{overflow-x:auto}
+.tbl table{border-collapse:collapse;width:100%;min-width:420px}
+.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.n{font-family:var(--f-mono);text-align:right}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--line);display:inline-block;margin-right:6px}
+.dot.on{background:var(--win)}
+.ed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.ed-o{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+.ed-o input{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:7px;border-radius:6px;font:600 13px var(--f-mono);min-width:0;width:100%}
+.ed-m{display:flex;flex-direction:column;gap:6px;padding-top:8px;border-top:1px solid var(--line)}
+.ed-m h4{margin:0;font-size:13px}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row2 input.sm{width:64px;border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:8px;border-radius:6px;font:600 14px var(--f-mono);text-align:center}
+@media (max-width:1040px){
+  #rail{flex-direction:column;overflow:visible;gap:2px}
+  #rail .gt{display:block}
+  .chip{white-space:normal;border:0;flex:initial}
+  .tklist{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ---- v3 additions: paper tokens, calendar, countries, tickets, admin ---- */
+:root{--paper:#FAF8F1;--paper-ink:#1A1A16;--paper-mute:#6A685D;--paper-line:#CFCABA;--ok:#0A7A44;--bad:#B33A2C}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--paper:#E8E5D8;--paper-ink:#15150F;--paper-mute:#5E5C50;--paper-line:#B9B4A2;--ok:#0A7A44;--bad:#B33A2C}}
+:root[data-theme="dark"]{--paper:#E8E5D8;--paper-ink:#15150F;--paper-mute:#5E5C50;--paper-line:#B9B4A2;--ok:#0A7A44;--bad:#B33A2C}
+
+.days{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.day{flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:78px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-weight:600;font-size:13px}
+.day small{font:500 11px var(--f-mono);color:var(--muted)}
+.day.on{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.day.on small{color:inherit;opacity:.8}
+
+#rail{gap:0}
+#rail summary{display:none;list-style:none;cursor:pointer;font-weight:600;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+#railin{display:flex;flex-direction:column;gap:2px}
+#rail .chip{white-space:normal;flex:none;border:0}
+.cty{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:0;border-radius:6px;padding:8px 10px;cursor:pointer;font-weight:600}
+.cty:hover{background:var(--surface2)}
+.cty.on{background:var(--surface2)}
+.cty i{margin-left:auto;font:500 12px var(--f-mono);font-style:normal;color:var(--muted)}
+.cty .car{font-size:11px;color:var(--muted);transition:transform .15s}
+.cty.open .car{transform:rotate(90deg)}
+.flag{width:22px;height:15px;border-radius:2px;outline:1px solid var(--line);flex:none;display:block}
+.sublg{display:flex;flex-direction:column;gap:2px;padding-left:20px;margin-bottom:4px}
+.onl{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;display:flex;flex-direction:column;gap:6px}
+.onl h3{font:800 15px var(--f-display);text-transform:uppercase;letter-spacing:.04em}
+.onl div{display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--win);flex:none}
+.dot.off{background:var(--line)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.panel h3{font:800 18px var(--f-display);text-transform:uppercase;letter-spacing:.03em}
+.frm{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));align-items:end}
+.frm .fld input,.oedit input{width:100%;min-width:0}
+.panels{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}
+.tblw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:8px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td.num{font-family:var(--f-mono);text-align:right}
+.oedit{display:flex;flex-direction:column;gap:3px;font-size:12.5px;color:var(--muted)}
+.oedit input{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:7px;border-radius:6px;font:600 14px var(--f-mono)}
+.oedit input.chg{border-color:var(--pick)}
+.row2{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.okmsg{color:var(--win);font-size:13px}
+
+.tk{--c:var(--paper-line);position:relative;background:var(--paper);color:var(--paper-ink);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;max-width:460px;width:100%;
+  background-image:radial-gradient(circle at 0 50%,var(--bg) 9px,transparent 9.5px),radial-gradient(circle at 100% 50%,var(--bg) 9px,transparent 9.5px);box-shadow:var(--shadow);font-family:var(--f-mono)}
+.tk-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:2px solid var(--paper-ink);padding-bottom:8px}
+.tk-logo{font:800 26px/1 var(--f-display);letter-spacing:.02em;text-transform:uppercase}
+.tk-id{font-size:12px}
+.tk-meta{font-size:12px;color:var(--paper-mute);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.tk-leg{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:8px 0;border-top:1px dashed var(--paper-line);font-size:13px}
+.tk-leg b{font-weight:600}
+.tk-leg small{grid-column:1;color:var(--paper-mute);font-size:11.5px;overflow-wrap:anywhere}
+.tk-leg .o{grid-row:1;grid-column:2;font-weight:600}
+.tk-leg .m{grid-row:2;grid-column:2;text-align:right;font-size:11px;font-weight:600}
+.m.won{color:var(--ok)}.m.lost{color:var(--bad)}
+.tk-sum{border-top:2px solid var(--paper-ink);padding-top:8px;display:flex;flex-direction:column;gap:3px;font-size:13px}
+.tk-sum div{display:flex;justify-content:space-between;gap:8px}
+.tk-stamp{align-self:center;font:800 22px var(--f-display);text-transform:uppercase;letter-spacing:.12em;border:3px solid currentColor;padding:2px 14px;border-radius:4px;transform:rotate(-4deg)}
+.tk-stamp.won{color:var(--ok)}.tk-stamp.lost{color:var(--bad)}.tk-stamp.pending{color:var(--paper-mute)}
+.tk-bar{height:46px;width:100%}
+.tk-bar svg{width:100%;height:100%;display:block}
+.tk-foot{font-size:10.5px;color:var(--paper-mute);text-align:center}
+.tk-act{display:flex;gap:8px}
+.blist{align-items:center}
+@media (max-width:1040px){
+  #rail summary{display:block}
+  #railin{padding-top:6px}
+}
+.fld select{border:1px solid var(--line);background:var(--bg);color:var(--ink);padding:10px;border-radius:6px;font:inherit;width:100%;min-width:0}
+.tk .btn{background:var(--paper);color:var(--paper-ink);border-color:var(--paper-ink);font-family:var(--f-body)}
+.tk .btn:hover{border-color:var(--brand)}
+@media (max-width:1040px){#rail{flex-direction:column;overflow:visible;max-height:none}}
+
+/* accents */
+:root[data-accent="orange"]{--bg:#F3ECE4;--surface:#FBF7F2;--surface2:#EADFD2;--ink:#2A1B10;--muted:#6E5C4C;--line:#D8C8B6;--brand:#C2540A;--brand-ink:#FFFFFF}
+:root[data-accent="blue"]{--bg:#E7EDF6;--surface:#F5F8FC;--surface2:#DAE3F0;--ink:#0E1B2E;--muted:#52637B;--line:#C3D0E2;--brand:#1D5BC4;--brand-ink:#FFFFFF}
+:root[data-accent="brown"]{--bg:#EDE6DF;--surface:#F8F4F0;--surface2:#E0D5CA;--ink:#261A13;--muted:#66554A;--line:#CFC0B2;--brand:#7B4A2B;--brand-ink:#FFFFFF}
+@media (prefers-color-scheme: dark){
+ :root[data-accent="orange"]:not([data-theme="light"]){--bg:#1A120C;--surface:#261A12;--surface2:#33241A;--ink:#F3E8DD;--muted:#B49D88;--line:#4A3626;--brand:#FF9A4D;--brand-ink:#1F0E02}
+ :root[data-accent="blue"]:not([data-theme="light"]){--bg:#0A1424;--surface:#111E33;--surface2:#182A47;--ink:#E4ECF8;--muted:#8FA3C2;--line:#243B5E;--brand:#5B9DFF;--brand-ink:#031024}
+ :root[data-accent="brown"]:not([data-theme="light"]){--bg:#16100C;--surface:#211813;--surface2:#2D221B;--ink:#EDE3DA;--muted:#A8978A;--line:#433229;--brand:#C8946B;--brand-ink:#1A0E06}
+}
+:root[data-accent="orange"][data-theme="dark"]{--bg:#1A120C;--surface:#261A12;--surface2:#33241A;--ink:#F3E8DD;--muted:#B49D88;--line:#4A3626;--brand:#FF9A4D;--brand-ink:#1F0E02}
+:root[data-accent="blue"][data-theme="dark"]{--bg:#0A1424;--surface:#111E33;--surface2:#182A47;--ink:#E4ECF8;--muted:#8FA3C2;--line:#243B5E;--brand:#5B9DFF;--brand-ink:#031024}
+:root[data-accent="brown"][data-theme="dark"]{--bg:#16100C;--surface:#211813;--surface2:#2D221B;--ink:#EDE3DA;--muted:#A8978A;--line:#433229;--brand:#C8946B;--brand-ink:#1A0E06}
+
+.dg{font:800 18px var(--f-display);text-transform:uppercase;letter-spacing:.04em;margin:18px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.dg:first-of-type{margin-top:6px}
+.sec-h+.dg{margin-top:6px}
+.thm{font-size:16px;padding:4px 10px}
+.swatches{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sw{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);cursor:pointer;font-weight:600}
+.sw i{width:18px;height:18px;border-radius:50%;background:var(--c);display:block}
+.sw.on{border-color:var(--brand);outline:2px solid var(--brand)}
+.sw-green{--c:#0A6B45}.sw-orange{--c:#E0701F}.sw-blue{--c:#2F6FDB}.sw-brown{--c:#8A5530}
+.sub-h{font:700 13px var(--f-body);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.tkimg{width:100%;border-radius:6px;display:block}
+a.btn{text-decoration:none;text-align:center}
+#side{display:flex;flex-direction:column;gap:12px;min-width:0}
+#adm[hidden]{display:none}
+.sidecard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px}
+.sc-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.sc-h h2{font:800 20px var(--f-display);text-transform:uppercase}
+.sc-h b{font-family:var(--f-mono)}
+.sidecard .panel{padding:10px;border:0;background:var(--surface2);gap:8px}
+.sidecard .panel h3{font-size:15px}
+.sidecard .frm{grid-template-columns:1fr}
+.sidecard .onl{margin:0}
+.tk-stamp.pending{display:none}
+@media (min-width:1041px){
+  #side{position:sticky;top:calc(env(safe-area-inset-top,0px) + 70px);max-height:calc(100vh - 90px);overflow-y:auto}
+  #side #slip{position:static;max-height:none}
+}
+#modal[hidden]{display:none}
+</style>
+
+</head>
+<body>
+<div class="strip" id="strip"></div>
+<header id="hdr"></header>
+<div class="wrap">
+  <nav id="rail" aria-label="Leagues"><details id="railbox"><summary id="railsum"></summary><div id="railin"></div></details></nav>
+  <main id="main"></main>
+  <aside id="side"><div id="adm" hidden></div><div id="slip"></div></aside>
+</div>
+<button id="slipbar" data-act="slipopen"></button>
+<div id="modal" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>(function(){'use strict';
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const gbp=n=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(n);
+const r2=n=>Math.round(n*100)/100;
+function ld(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+const I18N={
+sq:{
+ strip:"BettMarket · lojë demo, pa pagesa reale.",
+ foot:"Ndeshjet dhe kuotat janë shembuj të gjeneruar për këtë lojë demo. Nuk ka pagesa reale dhe asnjë vlerë monetare.",
+ mode_local:"Modalitet lokal: llogaritë dhe bastet ruhen vetëm në këtë shfletues.",
+ nav_matches:"Ndeshjet", nav_bets:"Bastet e mia", nav_admin:"Admin", bal:"Bilanci", logout:"Dil", login:"Hyr", login_as:"Hyr si {0}",
+ all:"Të gjitha", online_n:"Online: {0}", leagues:"Ligat", amateur:"amatore", semi:"gjysmë-profesionale",
+ c_en:"Angli", c_it:"Itali", c_es:"Spanjë", c_de:"Gjermani",
+ feat_tag:"Ndeshja e ditës", open_all:"Hap të gjitha tregjet ({0})", feat_note:"Fitues, gola, pjesa 1 dhe pjesa 2.",
+ today_w:"Sot", no_matches:"Nuk ka ndeshje për këtë ditë në këtë zgjedhje.",
+ draw:"Barazim", back:"← Ndeshjet", start:"Fillon", live:"Live", ht:"Pauzë", ft_line:"Fundi · Pjesa 1: {0} – {1}", goal:"gol",
+ sim:"Luaj ndeshjen", sim_note:"Pasi vendos bastet, luaje ndeshjen për të parë rezultatin dhe për të mbyllur bastet.",
+ lock_live:"Ndeshja po luhet. Bastet janë mbyllur.", lock_done:"Ndeshja ka mbaruar. Bastet mbi të janë llogaritur te “Bastet e mia”.",
+ tab_main:"Kryesore", tab_goals:"Gola", tab_h1:"Pjesa 1", tab_h2:"Pjesa 2",
+ m_ft:"Fituesi i ndeshjes (1X2)", m_dc:"Dyfishi i mundshëm", m_ou:"Gola gjithsej, mbi/nën {0}", m_btts:"Të dyja skuadrat shënojnë",
+ m_ex:"Numri i saktë i golave", m_tg:"Gola nga {0}, mbi/nën {1}", m_h1x:"Fituesi i pjesës së parë", m_h1ou:"Pjesa 1, gola mbi/nën {0}",
+ m_htft:"Pjesa 1 / Fundi, p.sh. 1/2 dhe 2/1 (1 = {0}, 2 = {1})", m_h2x:"Fituesi i pjesës së dytë", m_h2ou:"Pjesa 2, gola mbi/nën {0}",
+ m_most:"Pjesa me më shumë gola", m_h1h2:"Fituesi Pjesa 1 / Fituesi Pjesa 2, p.sh. 1/2 dhe 2/1 (1 = {0}, 2 = {1})",
+ over:"Mbi {0}", over_p:"Mbi {0} ({1}+ gola)", under:"Nën {0}", yes:"Po", no:"Jo", goals_n:"{0} gola", goals_ge:"{0} ose më shumë",
+ or_draw:"{0} ose barazim", or_team:"{0} ose {1}", draw_or:"Barazim ose {0}", half1:"Pjesa 1", equal:"Të barabarta", half2:"Pjesa 2",
+ bets_t:"Bastet e mia", see_bets:"Hyr për të parë bastet e tua.", no_bets:"Nuk ke vendosur asnjë bast. Zgjidh një kuotë nga ndeshjet.",
+ st_pending:"Në pritje", st_won:"Fituar", st_lost:"Humbur", single:"E vetme", acca:"Kombinim ({0})",
+ stake:"Basti", odds:"Kuota", ret_poss:"Kthim i mundshëm", won_l:"Fituar", ret_l:"Kthim", open_m:"Hap ndeshjen",
+ dl:"Shkarko tiketën", dl_ok:"Tiketa u shkarkua.", dl_fail:"Tiketa nuk u shkarkua.", tk_by:"Lojtari", tk_demo:"BettMarket · lojë demo, pa vlerë monetare",
+ slip_t:"Fleta e basteve", slip_empty:"Zgjidh një kuotë nga ndeshjet për ta shtuar këtu. Fleta pranon lojë të vetme dhe kombinim.",
+ singles:"Të vetme", accas:"Kombinim", acca_need:"Kombinimi kërkon zgjedhje nga ndeshje të ndryshme.",
+ stake_each:"Shuma për çdo bast", stake_one:"Shuma e basteve", t_odds:"Kuota totale", t_stake:"Shuma gjithsej", t_ret:"Kthim i mundshëm",
+ place:"Vendos bastin", place_login:"Hyr për të vendosur", balance:"Bilanci:",
+ min_stake:"Shuma minimale është £1.00.", no_funds:"Nuk ke mjaftueshëm bilanc.",
+ placed:"Basti u vendos. Kthim i mundshëm {0}", final:"Fundi: {0} {1} – {2} {3}.", settled:"Bastet e llogaritura: {0} të fituara, {1} të humbura.",
+ logout_ok:"Dole nga llogaria.", back_in:"Mirë se u ktheve, {0}.", saved:"U ruajt.", e_write:"Nuk u ruajt. Kërkohet qasje si Kontribuues ose më lart.",
+ a_login:"Hyr", a_user:"Emri i përdoruesit", a_pass:"Fjalëkalimi", a_enter:"Hyr", a_change:"Jo ti? Ndrysho përdoruesin",
+ a_nores:"Llogaritë i krijon vetëm administratori.", a_setup:"Llogaria e adminit nuk ekziston ende. Fjalëkalimi që vendos tani bëhet fjalëkalimi i saj.",
+ a_demo:"Mos përdor një fjalëkalim që përdor gjetkë.",
+ e_user:"Emri i përdoruesit duhet të ketë 3 deri në 20 shkronja ose shifra.", e_pass:"Fjalëkalimi duhet të ketë të paktën 4 shkronja.",
+ e_wrong:"Emri i përdoruesit ose fjalëkalimi është i pasaktë.", e_notowner:"Vetëm pronari i faqes mund ta krijojë adminin.",
+ e_exists:"Ky emër përdoruesi ekziston.", e_funds:"Nuk ke mjaftueshëm bilanc.", e_amt:"Shkruaj një shumë të vlefshme.", e_nouser:"Zgjidh një llogari.",
+ ad_t:"Paneli i adminit", ad_new:"Krijo llogari të re", ad_user:"Emri i përdoruesit", ad_pass:"Fjalëkalimi", ad_amt:"Shuma fillestare (£)", ad_create:"Krijo llogarinë",
+ ad_xfer:"Transfero para", ad_to:"Te llogaria", ad_amt2:"Shuma (£)", ad_send:"Dërgo", ad_accts:"Llogaritë", ad_online:"Online tani", ad_none:"Askush online.",
+ ad_role_admin:"Admin", ad_role_user:"Lojtar", ad_created:"Llogaria {0} u krijua.", ad_sent:"U dërguan {0} te {1}.", ad_you:"ti", th_user:"Përdoruesi", th_role:"Roli", th_bal:"Bilanci", th_on:"Online",
+ em_t:"Ndrysho ndeshjen", em_home:"Vendasi", em_away:"Musafiri", em_time:"Ora", em_save:"Ruaj ndeshjen", em_odds:"Ndrysho kuotat", em_odds_save:"Ruaj kuotat", em_odds_reset:"Rivendos kuotat", em_done:"Mbaro", em_hint:"Kuotat e reja vlejnë për bastet e reja."
+},
+en:{
+ strip:"BettMarket · demo game, no real payments.",
+ foot:"Matches and odds are generated examples for this demo game. There are no real payments and no cash value.",
+ mode_local:"Local mode: accounts and bets are stored only in this browser.",
+ nav_matches:"Matches", nav_bets:"My bets", nav_admin:"Admin", bal:"Balance", logout:"Log out", login:"Log in", login_as:"Log in as {0}",
+ all:"All", online_n:"Online: {0}", leagues:"Leagues", amateur:"amateur", semi:"semi-professional",
+ c_en:"England", c_it:"Italy", c_es:"Spain", c_de:"Germany",
+ feat_tag:"Match of the day", open_all:"Open all markets ({0})", feat_note:"Winner, goals, 1st half and 2nd half.",
+ today_w:"Today", no_matches:"No matches on this day for this selection.",
+ draw:"Draw", back:"← Matches", start:"Kick-off", live:"Live", ht:"Half-time", ft_line:"Full time · 1st half: {0} – {1}", goal:"goal",
+ sim:"Play the match", sim_note:"After placing your bets, play the match to see the result and settle them.",
+ lock_live:"The match is being played. Betting is closed.", lock_done:"The match has finished. Bets on it were settled in “My bets”.",
+ tab_main:"Main", tab_goals:"Goals", tab_h1:"1st half", tab_h2:"2nd half",
+ m_ft:"Match winner (1X2)", m_dc:"Double chance", m_ou:"Total goals, over/under {0}", m_btts:"Both teams to score",
+ m_ex:"Exact number of goals", m_tg:"{0} goals, over/under {1}", m_h1x:"1st half winner", m_h1ou:"1st half goals, over/under {0}",
+ m_htft:"Half-time / Full-time, e.g. 1/2 and 2/1 (1 = {0}, 2 = {1})", m_h2x:"2nd half winner", m_h2ou:"2nd half goals, over/under {0}",
+ m_most:"Half with most goals", m_h1h2:"1st half winner / 2nd half winner, e.g. 1/2 and 2/1 (1 = {0}, 2 = {1})",
+ over:"Over {0}", over_p:"Over {0} ({1}+ goals)", under:"Under {0}", yes:"Yes", no:"No", goals_n:"{0} goals", goals_ge:"{0} or more",
+ or_draw:"{0} or draw", or_team:"{0} or {1}", draw_or:"Draw or {0}", half1:"1st half", equal:"Equal", half2:"2nd half",
+ bets_t:"My bets", see_bets:"Log in to see your bets.", no_bets:"You haven’t placed any bets. Pick an odd from the matches.",
+ st_pending:"Pending", st_won:"Won", st_lost:"Lost", single:"Single", acca:"Accumulator ({0})",
+ stake:"Stake", odds:"Odds", ret_poss:"Potential return", won_l:"Won", ret_l:"Return", open_m:"Open match",
+ dl:"Download ticket", dl_ok:"Ticket downloaded.", dl_fail:"The ticket was not downloaded.", tk_by:"Player", tk_demo:"BettMarket · demo game, no cash value",
+ slip_t:"Bet slip", slip_empty:"Pick an odd from the matches to add it here. The slip accepts singles and accumulators.",
+ singles:"Singles", accas:"Accumulator", acca_need:"An accumulator needs picks from different matches.",
+ stake_each:"Stake per bet", stake_one:"Stake", t_odds:"Total odds", t_stake:"Total stake", t_ret:"Potential return",
+ place:"Place bet", place_login:"Log in to place bet", balance:"Balance:",
+ min_stake:"The minimum stake is £1.00.", no_funds:"Not enough balance.",
+ placed:"Bet placed. Potential return {0}", final:"Full time: {0} {1} – {2} {3}.", settled:"Bets settled: {0} won, {1} lost.",
+ logout_ok:"You logged out.", back_in:"Welcome back, {0}.", saved:"Saved.", e_write:"Not saved. Contributor access or higher is required.",
+ a_login:"Log in", a_user:"Username", a_pass:"Password", a_enter:"Log in", a_change:"Not you? Change user",
+ a_nores:"Only the administrator creates accounts.", a_setup:"The admin account doesn’t exist yet. The password you enter now becomes its password.",
+ a_demo:"Don’t use a password you use elsewhere.",
+ e_user:"The username needs 3 to 20 letters or digits.", e_pass:"The password needs at least 4 characters.",
+ e_wrong:"Wrong username or password.", e_notowner:"Only the owner of the page can create the admin.",
+ e_exists:"That username already exists.", e_funds:"Not enough balance.", e_amt:"Enter a valid amount.", e_nouser:"Pick an account.",
+ ad_t:"Admin panel", ad_new:"Create a new account", ad_user:"Username", ad_pass:"Password", ad_amt:"Starting amount (£)", ad_create:"Create account",
+ ad_xfer:"Transfer money", ad_to:"To account", ad_amt2:"Amount (£)", ad_send:"Send", ad_accts:"Accounts", ad_online:"Online now", ad_none:"Nobody online.",
+ ad_role_admin:"Admin", ad_role_user:"Player", ad_created:"Account {0} created.", ad_sent:"Sent {0} to {1}.", ad_you:"you", th_user:"User", th_role:"Role", th_bal:"Balance", th_on:"Online",
+ em_t:"Edit match", em_home:"Home team", em_away:"Away team", em_time:"Time", em_save:"Save match", em_odds:"Edit odds", em_odds_save:"Save odds", em_odds_reset:"Reset odds", em_done:"Done", em_hint:"New odds apply to new bets."
+},
+de:{
+ strip:"BettMarket · Demo-Spiel, keine echten Zahlungen.",
+ foot:"Spiele und Quoten sind generierte Beispiele für dieses Demo-Spiel. Es gibt keine echten Zahlungen und keinen Geldwert.",
+ mode_local:"Lokaler Modus: Konten und Wetten werden nur in diesem Browser gespeichert.",
+ nav_matches:"Spiele", nav_bets:"Meine Wetten", nav_admin:"Admin", bal:"Guthaben", logout:"Abmelden", login:"Anmelden", login_as:"Anmelden als {0}",
+ all:"Alle", online_n:"Online: {0}", leagues:"Ligen", amateur:"Amateur", semi:"Halbprofi",
+ c_en:"England", c_it:"Italien", c_es:"Spanien", c_de:"Deutschland",
+ feat_tag:"Spiel des Tages", open_all:"Alle Märkte öffnen ({0})", feat_note:"Sieger, Tore, 1. und 2. Halbzeit.",
+ today_w:"Heute", no_matches:"Keine Spiele an diesem Tag in dieser Auswahl.",
+ draw:"Unentschieden", back:"← Spiele", start:"Anstoss", live:"Live", ht:"Halbzeit", ft_line:"Endstand · 1. Halbzeit: {0} – {1}", goal:"Tor",
+ sim:"Spiel spielen", sim_note:"Platziere deine Wetten und spiele das Spiel, um das Ergebnis zu sehen und die Wetten abzurechnen.",
+ lock_live:"Das Spiel läuft. Wetten sind geschlossen.", lock_done:"Das Spiel ist beendet. Wetten darauf wurden unter «Meine Wetten» abgerechnet.",
+ tab_main:"Haupt", tab_goals:"Tore", tab_h1:"1. Halbzeit", tab_h2:"2. Halbzeit",
+ m_ft:"Spielsieger (1X2)", m_dc:"Doppelte Chance", m_ou:"Tore gesamt, über/unter {0}", m_btts:"Beide Teams treffen",
+ m_ex:"Genaue Anzahl Tore", m_tg:"Tore von {0}, über/unter {1}", m_h1x:"Sieger 1. Halbzeit", m_h1ou:"1. Halbzeit, Tore über/unter {0}",
+ m_htft:"Halbzeit / Endstand, z. B. 1/2 und 2/1 (1 = {0}, 2 = {1})", m_h2x:"Sieger 2. Halbzeit", m_h2ou:"2. Halbzeit, Tore über/unter {0}",
+ m_most:"Halbzeit mit den meisten Toren", m_h1h2:"Sieger 1. Halbzeit / Sieger 2. Halbzeit, z. B. 1/2 und 2/1 (1 = {0}, 2 = {1})",
+ over:"Über {0}", over_p:"Über {0} ({1}+ Tore)", under:"Unter {0}", yes:"Ja", no:"Nein", goals_n:"{0} Tore", goals_ge:"{0} oder mehr",
+ or_draw:"{0} oder Unentschieden", or_team:"{0} oder {1}", draw_or:"Unentschieden oder {0}", half1:"1. Halbzeit", equal:"Gleich", half2:"2. Halbzeit",
+ bets_t:"Meine Wetten", see_bets:"Melde dich an, um deine Wetten zu sehen.", no_bets:"Du hast noch keine Wette platziert. Wähle eine Quote.",
+ st_pending:"Offen", st_won:"Gewonnen", st_lost:"Verloren", single:"Einzel", acca:"Kombi ({0})",
+ stake:"Einsatz", odds:"Quote", ret_poss:"Möglicher Gewinn", won_l:"Gewonnen", ret_l:"Auszahlung", open_m:"Spiel öffnen",
+ dl:"Ticket herunterladen", dl_ok:"Ticket heruntergeladen.", dl_fail:"Das Ticket wurde nicht heruntergeladen.", tk_by:"Spieler", tk_demo:"BettMarket · Demo-Spiel, kein Geldwert",
+ slip_t:"Wettschein", slip_empty:"Wähle eine Quote aus den Spielen, um sie hier hinzuzufügen. Einzel- und Kombiwetten sind möglich.",
+ singles:"Einzel", accas:"Kombi", acca_need:"Eine Kombi braucht Tipps aus verschiedenen Spielen.",
+ stake_each:"Einsatz pro Wette", stake_one:"Einsatz", t_odds:"Gesamtquote", t_stake:"Gesamteinsatz", t_ret:"Möglicher Gewinn",
+ place:"Wette platzieren", place_login:"Anmelden zum Wetten", balance:"Guthaben:",
+ min_stake:"Der Mindesteinsatz beträgt £1.00.", no_funds:"Nicht genug Guthaben.",
+ placed:"Wette platziert. Möglicher Gewinn {0}", final:"Endstand: {0} {1} – {2} {3}.", settled:"Wetten abgerechnet: {0} gewonnen, {1} verloren.",
+ logout_ok:"Du wurdest abgemeldet.", back_in:"Willkommen zurück, {0}.", saved:"Gespeichert.", e_write:"Nicht gespeichert. Zugriff als Mitwirkender oder höher nötig.",
+ a_login:"Anmelden", a_user:"Benutzername", a_pass:"Passwort", a_enter:"Anmelden", a_change:"Nicht du? Benutzer wechseln",
+ a_nores:"Konten erstellt nur der Administrator.", a_setup:"Das Admin-Konto existiert noch nicht. Das Passwort, das du jetzt eingibst, wird sein Passwort.",
+ a_demo:"Verwende kein Passwort, das du anderswo nutzt.",
+ e_user:"Der Benutzername braucht 3 bis 20 Buchstaben oder Ziffern.", e_pass:"Das Passwort braucht mindestens 4 Zeichen.",
+ e_wrong:"Benutzername oder Passwort falsch.", e_notowner:"Nur der Besitzer der Seite kann den Admin erstellen.",
+ e_exists:"Dieser Benutzername existiert bereits.", e_funds:"Nicht genug Guthaben.", e_amt:"Gib einen gültigen Betrag ein.", e_nouser:"Wähle ein Konto.",
+ ad_t:"Admin-Bereich", ad_new:"Neues Konto erstellen", ad_user:"Benutzername", ad_pass:"Passwort", ad_amt:"Startbetrag (£)", ad_create:"Konto erstellen",
+ ad_xfer:"Geld überweisen", ad_to:"An Konto", ad_amt2:"Betrag (£)", ad_send:"Senden", ad_accts:"Konten", ad_online:"Jetzt online", ad_none:"Niemand online.",
+ ad_role_admin:"Admin", ad_role_user:"Spieler", ad_created:"Konto {0} erstellt.", ad_sent:"{0} an {1} gesendet.", ad_you:"du", th_user:"Benutzer", th_role:"Rolle", th_bal:"Guthaben", th_on:"Online",
+ em_t:"Spiel bearbeiten", em_home:"Heimteam", em_away:"Gastteam", em_time:"Zeit", em_save:"Spiel speichern", em_odds:"Quoten bearbeiten", em_odds_save:"Quoten speichern", em_odds_reset:"Quoten zurücksetzen", em_done:"Fertig", em_hint:"Neue Quoten gelten für neue Wetten."
+}};
+Object.assign(I18N.sq,{"c_eu": "Evropë", "c_fr": "Francë", "c_al": "Shqipëri", "c_tr": "Turqi", "c_sc": "Skoci", "c_at": "Austri", "c_gr": "Greqi", "c_us": "SHBA", "c_mx": "Meksikë", "c_ar": "Argjentinë", "c_br": "Brazil", "st_inplay": "Në lojë", "st_await": "Pret rezultatin", "st_void": "Anuluar", "e_closed": "Ndeshja ka filluar. Bastet janë mbyllur.", "single_n": "Të vetme ({0} × {1})", "theme_t": "Pamja", "th_auto": "Auto", "th_light": "E çelët", "th_dark": "E errët", "th_color": "Ngjyra", "ac_green": "Jeshile", "ac_orange": "Portokalli", "ac_blue": "Blu", "ac_brown": "Kafe", "dl_img": "Shkarko foton", "img_hint": "Shtyp gjatë foton për ta ruajtur.", "ad_start_note": "Shuma zbritet nga bilanci yt.", "foot": "", "tk_demo": "", "sim": "Test (admin)", "sim_note": "Simulon rezultat testimi për këtë ndeshje. Përdore vetëm për prova.", "strip": "BettMarket · ndeshje reale, bastet mbyllen në fillim të ndeshjes."});
+Object.assign(I18N.en,{"c_eu": "Europe", "c_fr": "France", "c_al": "Albania", "c_tr": "Turkey", "c_sc": "Scotland", "c_at": "Austria", "c_gr": "Greece", "c_us": "USA", "c_mx": "Mexico", "c_ar": "Argentina", "c_br": "Brazil", "st_inplay": "In play", "st_await": "Awaiting result", "st_void": "Void", "e_closed": "The match has started. Betting is closed.", "single_n": "Singles ({0} × {1})", "theme_t": "Appearance", "th_auto": "Auto", "th_light": "Light", "th_dark": "Dark", "th_color": "Colour", "ac_green": "Green", "ac_orange": "Orange", "ac_blue": "Blue", "ac_brown": "Brown", "dl_img": "Download image", "img_hint": "Long-press the image to save it.", "ad_start_note": "The amount is deducted from your balance.", "foot": "", "tk_demo": "", "sim": "Test (admin)", "sim_note": "Simulates a test result for this match. Use for testing only.", "strip": "BettMarket · real fixtures, betting closes at kick-off."});
+Object.assign(I18N.de,{"c_eu": "Europa", "c_fr": "Frankreich", "c_al": "Albanien", "c_tr": "Türkei", "c_sc": "Schottland", "c_at": "Österreich", "c_gr": "Griechenland", "c_us": "USA", "c_mx": "Mexiko", "c_ar": "Argentinien", "c_br": "Brasilien", "st_inplay": "Läuft", "st_await": "Warte auf Ergebnis", "st_void": "Ungültig", "e_closed": "Das Spiel hat begonnen. Wetten sind geschlossen.", "single_n": "Einzelwetten ({0} × {1})", "theme_t": "Darstellung", "th_auto": "Auto", "th_light": "Hell", "th_dark": "Dunkel", "th_color": "Farbe", "ac_green": "Grün", "ac_orange": "Orange", "ac_blue": "Blau", "ac_brown": "Braun", "dl_img": "Bild herunterladen", "img_hint": "Bild lange drücken, um es zu speichern.", "ad_start_note": "Der Betrag wird von deinem Guthaben abgezogen.", "foot": "", "tk_demo": "", "sim": "Test (Admin)", "sim_note": "Simuliert ein Testergebnis für dieses Spiel. Nur zum Testen.", "strip": "BettMarket · echte Spiele, Wetten schließen zum Anstoß."});
+Object.assign(I18N.sq,{all_dates:'Të gjitha datat'});Object.assign(I18N.en,{all_dates:'All dates'});Object.assign(I18N.de,{all_dates:'Alle Daten'});
+let LANG=ld('bm_lang','sq');if(!I18N[LANG])LANG='sq';
+const t=(k,...a)=>{let s=I18N[LANG][k]!==undefined?I18N[LANG][k]:(I18N.sq[k]!==undefined?I18N.sq[k]:k);a.forEach((v,i)=>{s=s.split('{'+i+'}').join(v)});return s};
+
+const FX=[["LL2_202610121200_valladolid_albacete","LL2",1791806400000,"Valladolid","Albacete"],["LL2_202610121415_burgos_granada","LL2",1791814500000,"Burgos","Granada"],["GRE_202610121500_paok_kalamata","GRE",1791817200000,"PAOK","Kalamata"],["LL2_202610121630_realoviedo_eibar","LL2",1791822600000,"Real Oviedo","Eibar"],["SA_202610121630_atalanta_venezia","SA",1791822600000,"Atalanta","Venezia"],["ISTH_202610121845_carshalton_enfieldtow","ISTH",1791830700000,"Carshalton Athletic","Enfield Town"],["SA_202610121845_torino_udinese","SA",1791830700000,"Torino","Udinese"],["ARG_202610121900_lanus_velezsarsf","ARG",1791831600000,"Lanus","Velez Sarsfield"],["BRA_202610121900_coritiba_botafogo","BRA",1791831600000,"Coritiba","Botafogo"],["LL_202610121900_levante_sevilla","LL",1791831600000,"Levante","Sevilla"],["LL2_202610121900_tenerife_girona","LL2",1791831600000,"Tenerife","Girona"],["PL_202610121900_coventryci_newcastleu","PL",1791831600000,"Coventry City","Newcastle United"],["ARG_202610122130_gimnasiame_newellsold","ARG",1791840600000,"Gimnasia Mendoza","Newells Old Boys"],["BRA_202610122230_chapecoens_athleticop","BRA",1791844200000,"Chapecoense","Athletico-PR"],["BRA_202610130000_rbbraganti_cruzeiro","BRA",1791849600000,"RB Bragantino","Cruzeiro"],["UCL_202610131645_lens_sportingcp","UCL",1791909900000,"Lens","Sporting CP"],["UCL_202610131645_sabahfc_slaviaprag","UCL",1791909900000,"Sabah FC","Slavia Prague"],["CH_202610131845_bristolcit_blackburnr","CH",1791917100000,"Bristol City","Blackburn Rovers"],["CH_202610131845_burnley_charltonat","CH",1791917100000,"Burnley","Charlton Athletic"],["CH_202610131845_cardiffcit_watford","CH",1791917100000,"Cardiff City","Watford"],["CH_202610131845_millwall_swanseacit","CH",1791917100000,"Millwall","Swansea City"],["CH_202610131845_wolverhamp_boltonwand","CH",1791917100000,"Wolverhampton Wanderers","Bolton Wanderers"],["CH_202610131845_wrexham_westbromwi","CH",1791917100000,"Wrexham","West Bromwich Albion"],["ISTH_202610131845_burgesshil_dulwichham","ISTH",1791917100000,"Burgess Hill Town","Dulwich Hamlet"],["ISTH_202610131845_threebridg_lewes","ISTH",1791917100000,"Three Bridges","Lewes"],["ISTH_202610131845_wingatefin_ramsgate","ISTH",1791917100000,"Wingate & Finchley","Ramsgate"],["NLS_202610131845_ebbsfleetu_afctotton","NLS",1791917100000,"Ebbsfleet United","AFC Totton"],["NPL_202610131845_ashtonunit_alfretonto","NPL",1791917100000,"Ashton United","Alfreton Town"],["NPL_202610131845_bamberbrid_warrington","NPL",1791917100000,"Bamber Bridge","Warrington Town"],["NPL_202610131845_fcunitedof_emleyafc","NPL",1791917100000,"FC United of Manchester","Emley AFC"],["NPL_202610131845_gainsborou_ilkestonto","NPL",1791917100000,"Gainsborough Trinity","Ilkeston Town"],["NPL_202610131845_hydeunited_quorn","NPL",1791917100000,"Hyde United","Quorn"],["NPL_202610131845_lancasterc_stocktonto","NPL",1791917100000,"Lancaster City","Stockton Town"],["NPL_202610131845_redcarathl_avro","NPL",1791917100000,"Redcar Athletic","Avro"],["NPL_202610131845_warrington_curzonasht","NPL",1791917100000,"Warrington Rylands","Curzon Ashton"],["NPL_202610131845_workington_whitbytown","NPL",1791917100000,"Workington AFC","Whitby Town"],["SPL_202610131845_ansteynoma_rushalloly","SPL",1791917100000,"Anstey Nomads","Rushall Olympic"],["SPL_202610131845_bracknellt_hanworthvi","SPL",1791917100000,"Bracknell Town","Hanworth Villa"],["SPL_202610131845_bromsgrove_ketteringt","SPL",1791917100000,"Bromsgrove Sporting","Kettering Town"],["SPL_202610131845_burytown_needhammar","SPL",1791917100000,"Bury Town","Needham Market"],["SPL_202610131845_chippenham_frometown","SPL",1791917100000,"Chippenham Town","Frome Town"],["SPL_202610131845_eveshamuni_bathcity","SPL",1791917100000,"Evesham United","Bath City"],["SPL_202610131845_gloucester_tauntontow","SPL",1791917100000,"Gloucester City","Taunton Town"],["SPL_202610131845_halesowent_alvechurch","SPL",1791917100000,"Halesowen Town","Alvechurch"],["SPL_202610131845_hanwelltow_chertseyto","SPL",1791917100000,"Hanwell Town","Chertsey Town"],["SPL_202610131845_havantwate_basingstok","SPL",1791917100000,"Havant & Waterlooville","Basingstoke Town"],["SPL_202610131845_leamington_redditchun","SPL",1791917100000,"Leamington","Redditch United"],["SPL_202610131845_malverntow_yatetown","SPL",1791917100000,"Malvern Town","Yate Town"],["SPL_202610131845_peterborou_banburyuni","SPL",1791917100000,"Peterborough Sports","Banbury United"],["SPL_202610131845_plymouthpa_wimborneto","SPL",1791917100000,"Plymouth Parkway","Wimborne Town"],["SPL_202610131845_sholing_chichester","SPL",1791917100000,"Sholing","Chichester City"],["SPL_202610131845_stamford_stratfordt","SPL",1791917100000,"Stamford","Stratford Town"],["SPL_202610131845_worcesterc_stourbridg","SPL",1791917100000,"Worcester City","Stourbridge"],["CH_202610131900_birmingham_prestonnor","CH",1791918000000,"Birmingham City","Preston North End"],["CH_202610131900_stokecity_middlesbro","CH",1791918000000,"Stoke City","Middlesbrough"],["UCL_202610131900_arsenal_lille","UCL",1791918000000,"Arsenal","Lille"],["UCL_202610131900_atleticoma_manchester","UCL",1791918000000,"Atletico Madrid","Manchester United"],["UCL_202610131900_galatasara_barcelona","UCL",1791918000000,"Galatasaray","Barcelona"],["UCL_202610131900_inter_clubbrugge","UCL",1791918000000,"Inter","Club Brugge"],["UCL_202610131900_rbleipzig_psveindhov","UCL",1791918000000,"RB Leipzig","PSV Eindhoven"],["UCL_202610131900_viking_bayernmuni","UCL",1791918000000,"Viking","Bayern Munich"],["UCL_202610131900_villarreal_napoli","UCL",1791918000000,"Villarreal","Napoli"],["UCL_202610141645_feyenoord_como","UCL",1791996300000,"Feyenoord","Como"],["UCL_202610141645_lask_liverpool","UCL",1791996300000,"LASK","Liverpool"],["CH_202610141845_norwichcit_southampto","CH",1792003500000,"Norwich City","Southampton"],["CH_202610141845_portsmouth_sheffieldu","CH",1792003500000,"Portsmouth","Sheffield United"],["CH_202610141845_queenspark_derbycount","CH",1792003500000,"Queens Park Rangers","Derby County"],["ISTH_202610141845_afcwhytele_whitehawk","ISTH",1792003500000,"AFC Whyteleafe","Whitehawk"],["CH_202610141900_lincolncit_westhamuni","CH",1792004400000,"Lincoln City","West Ham United"],["UCL_202610141900_astonvilla_fenerbahce","UCL",1792004400000,"Aston Villa","Fenerbahce"],["UCL_202610141900_bodoglimt_borussiado","UCL",1792004400000,"Bodo/Glimt","Borussia Dortmund"],["UCL_202610141900_manchester_parissaint","UCL",1792004400000,"Manchester City","Paris Saint-Germain"],["UCL_202610141900_realbetis_porto","UCL",1792004400000,"Real Betis","Porto"],["UCL_202610141900_roma_realmadrid","UCL",1792004400000,"Roma","Real Madrid"],["UCL_202610141900_shakhtardo_aekathens","UCL",1792004400000,"Shakhtar Donetsk","AEK Athens"],["UCL_202610141900_slovanbrat_stuttgart","UCL",1792004400000,"Slovan Bratislava","Stuttgart"],["ARG_202610142200_sarmiento_riverplate","ARG",1792015200000,"Sarmiento","River Plate"],["MLS_202610142330_cfmontreal_atlantauni","MLS",1792020600000,"CF Montreal","Atlanta United"],["MLS_202610142330_columbuscr_charlottef","MLS",1792020600000,"Columbus Crew","Charlotte FC"],["MLS_202610142330_dcunited_newyorkred","MLS",1792020600000,"DC United","New York Red Bulls"],["MLS_202610142330_fccincinna_newengland","MLS",1792020600000,"FC Cincinnati","New England"],["MLS_202610142330_intermiami_newyorkcit","MLS",1792020600000,"Inter Miami","New York City"],["MLS_202610142330_torontofc_orlandocit","MLS",1792020600000,"Toronto FC","Orlando City"],["MLS_202610150030_chicagofir_philadelph","MLS",1792024200000,"Chicago Fire","Philadelphia Union"],["MLS_202610150030_fcdallas_seattlesou","MLS",1792024200000,"FC Dallas","Seattle Sounders"],["MLS_202610150030_nashvilles_sportingkc","MLS",1792024200000,"Nashville SC","Sporting KC"],["MLS_202610150030_stlouiscit_vancouverw","MLS",1792024200000,"St. Louis City","Vancouver Whitecaps"],["MLS_202610150130_coloradora_minnesotau","MLS",1792027800000,"Colorado Rapids","Minnesota United"],["MLS_202610150130_realsaltla_sanjoseear","MLS",1792027800000,"Real Salt Lake","San Jose Earthquakes"],["MLS_202610150230_lagalaxy_portlandti","MLS",1792031400000,"LA Galaxy","Portland Timbers"],["MLS_202610150230_losangeles_austinfc","MLS",1792031400000,"Los Angeles FC","Austin FC"],["MLS_202610150230_sandiegofc_houstondyn","MLS",1792031400000,"San Diego FC","Houston Dynamo"],["UECL_202610151645_cskasofia_monaco","UECL",1792082700000,"CSKA Sofia","Monaco"],["UECL_202610151645_csucraiova_getafe","UECL",1792082700000,"CSU Craiova","Getafe"],["UECL_202610151645_egnatia_midtjyllan","UECL",1792082700000,"Egnatia","Midtjylland"],["UECL_202610151645_gent_agf","UECL",1792082700000,"Gent","AGF"],["UECL_202610151645_hajdukspli_ajax","UECL",1792082700000,"Hajduk Split","Ajax"],["UECL_202610151645_kups_trabzonspo","UECL",1792082700000,"KuPS","Trabzonspor"],["UECL_202610151645_lugano_crvenazvez","UECL",1792082700000,"Lugano","Crvena Zvezda"],["UECL_202610151645_mjallby_interclubd","UECL",1792082700000,"Mjallby","Inter Club d'Escaldes"],["UECL_202610151645_panathinai_boracbanja","UECL",1792082700000,"Panathinaikos","Borac Banja Luka"],["UECL_202610151645_riga_kairat","UECL",1792082700000,"Riga","Kairat"],["UEL_202610151645_az_hapoelbeer","UEL",1792082700000,"AZ","Hapoel Beer Sheva"],["UEL_202610151645_celje_omonianico","UEL",1792082700000,"Celje","Omonia Nicosia"],["UEL_202610151645_lechpoznan_bayerlever","UEL",1792082700000,"Lech Poznan","Bayer Leverkusen"],["UEL_202610151645_lyon_crystalpal","UEL",1792082700000,"Lyon","Crystal Palace"],["UEL_202610151645_salzburg_acmilan","UEL",1792082700000,"Salzburg","AC Milan"],["UEL_202610151645_spartaprag_lillestrom","UEL",1792082700000,"Sparta Prague","Lillestrom"],["UEL_202610151645_torreense_sunderland","UEL",1792082700000,"Torreense","Sunderland"],["UEL_202610151645_unionsaint_realsocied","UEL",1792082700000,"Union Saint-Gilloise","Real Sociedad"],["L1_202610151900_mansfieldt_oxfordunit","L1",1792090800000,"Mansfield Town","Oxford United"],["UECL_202610151900_atalanta_paphos","UECL",1792090800000,"Atalanta","Paphos"],["UECL_202610151900_brann_lincolnred","UECL",1792090800000,"Brann","Lincoln Red Imps"],["UECL_202610151900_brightonho_kaunozalgi","UECL",1792090800000,"Brighton & Hove Albion","Kauno Zalgiris"],["UECL_202610151900_copenhagen_braga","UECL",1792090800000,"Copenhagen","Braga"],["UECL_202610151900_freiburg_jablonec","UECL",1792090800000,"Freiburg","Jablonec"],["UECL_202610151900_hearts_nordsjaell","UECL",1792090800000,"Hearts","Nordsjaelland"],["UECL_202610151900_sinttruide_iberia1999","UECL",1792090800000,"Sint-Truiden","Iberia 1999"],["UECL_202610151900_twente_thun","UECL",1792090800000,"Twente","Thun"],["UEL_202610151900_afcbournem_sturmgraz","UEL",1792090800000,"AFC Bournemouth","Sturm Graz"],["UEL_202610151900_benfica_celtic","UEL",1792090800000,"Benfica","Celtic"],["UEL_202610151900_celtavigo_juventus","UEL",1792090800000,"Celta Vigo","Juventus"],["UEL_202610151900_dinamozagr_anderlecht","UEL",1792090800000,"Dinamo Zagreb","Anderlecht"],["UEL_202610151900_ferencvaro_viktoriapl","UEL",1792090800000,"Ferencvaros","Viktoria Plzen"],["UEL_202610151900_hoffenheim_besiktas","UEL",1792090800000,"Hoffenheim","Besiktas"],["UEL_202610151900_jagielloni_araratarme","UEL",1792090800000,"Jagiellonia Bialystok","Ararat-Armenia"],["UEL_202610151900_marseille_olympiakos","UEL",1792090800000,"Marseille","Olympiakos"],["UEL_202610151900_nec_levskisofi","UEL",1792090800000,"NEC","Levski Sofia"],["UEL_202610151900_rennes_ofi","UEL",1792090800000,"Rennes","OFI"],["ARG_202610152300_huracan_gimnasiala","ARG",1792105200000,"Huracan","Gimnasia La Plata"],["ALB2_202610161130_kukesi_besakavaje","ALB2",1792150200000,"Kukesi","Besa Kavaje"],["ALB2_202610161130_oriku_flamurtari","ALB2",1792150200000,"Oriku","Flamurtari"],["ALB_202610161630_dinamocity_teutadurre","ALB",1792168200000,"Dinamo City","Teuta Durres"],["TR_202610161700_corum_rizespor","TR",1792170000000,"Corum","Rizespor"],["AUT_202610161730_rapidwien_hartberg","AUT",1792171800000,"Rapid Wien","Hartberg"],["BL_202610161830_eintrachtf_cologne","BL",1792175400000,"Eintracht Frankfurt","Cologne"],["F1_202610161845_lemans_toulouse","F1",1792176300000,"Le Mans","Toulouse"],["SA_202610161845_frosinone_sassuolo","SA",1792176300000,"Frosinone","Sassuolo"],["CH_202610161900_burnley_wolverhamp","CH",1792177200000,"Burnley","Wolverhampton Wanderers"],["LL_202610161900_deportivol_levante","LL",1792177200000,"Deportivo La Coruna","Levante"],["ARG_202610162200_defensayju_instituto","ARG",1792188000000,"Defensa y Justicia","Instituto"],["BRA_202610162300_mirassol_internacio","BRA",1792191600000,"Mirassol","Internacional"],["ARG_202610170030_bocajunior_talleresco","ARG",1792197000000,"Boca Juniors","Talleres Cordoba"],["MX_202610170100_necaxa_atlas","MX",1792198800000,"Necaxa","Atlas"],["MX_202610170300_atlante_pumasunam","MX",1792206000000,"Atlante","Pumas UNAM"],["MX_202610170300_tijuana_puebla","MX",1792206000000,"Tijuana","Puebla"],["TR_202610171030_erzurumspo_eyupspor","TR",1792233000000,"Erzurumspor","Eyupspor"],["ALB_202610171130_tirana_laci","ALB",1792236600000,"Tirana","Laci"],["ALB2_202610171130_beselidhja_kastriotik","ALB2",1792236600000,"Beselidhja Lezhe","Kastrioti Kruje"],["ALB2_202610171130_iliriafush_burreli","ALB2",1792236600000,"Iliria Fushe-Kruje","Burreli"],["ALB2_202610171130_korabipesh_bylisballs","ALB2",1792236600000,"Korabi Peshkopi","Bylis Ballsh"],["ALB2_202610171130_pogradeci_sopotilibr","ALB2",1792236600000,"Pogradeci","Sopoti Librazhd"],["CH_202610171130_middlesbro_cardiffcit","CH",1792236600000,"Middlesbrough","Cardiff City"],["CH_202610171130_millwall_lincolncit","CH",1792236600000,"Millwall","Lincoln City"],["CH_202610171130_watford_charltonat","CH",1792236600000,"Watford","Charlton Athletic"],["L1_202610171130_miltonkeyn_lutontown","L1",1792236600000,"Milton Keynes Dons","Luton Town"],["L1_202610171130_peterborou_burtonalbi","L1",1792236600000,"Peterborough United","Burton Albion"],["L2_202610171130_fleetwoodt_rotherhamu","L2",1792236600000,"Fleetwood Town","Rotherham United"],["L2_202610171130_shrewsbury_bristolrov","L2",1792236600000,"Shrewsbury Town","Bristol Rovers"],["PL_202610171130_everton_chelsea","PL",1792236600000,"Everton","Chelsea"],["LL_202610171200_espanyol_atleticoma","LL",1792238400000,"Espanyol","Atletico Madrid"],["SA_202610171300_venezia_napoli","SA",1792242000000,"Venezia","Napoli"],["TR_202610171300_amedspor_konyaspor","TR",1792242000000,"Amedspor","Konyaspor"],["TR_202610171300_genclerbir_galatasara","TR",1792242000000,"Genclerbirligi","Galatasaray"],["BL_202610171330_elversberg_augsburg","BL",1792243800000,"Elversberg","Augsburg"],["BL_202610171330_hamburgers_stuttgart","BL",1792243800000,"Hamburger SV","Stuttgart"],["BL_202610171330_schalke04_mainz05","BL",1792243800000,"Schalke 04","Mainz 05"],["BL_202610171330_unionberli_borussiado","BL",1792243800000,"Union Berlin","Borussia Dortmund"],["BL_202610171330_werderbrem_paderborn","BL",1792243800000,"Werder Bremen","Paderborn"],["ALB_202610171400_skenderbeu_elbasani","ALB",1792245600000,"Skenderbeu Korce","Elbasani"],["CH_202610171400_birmingham_queenspark","CH",1792245600000,"Birmingham City","Queens Park Rangers"],["CH_202610171400_bristolcit_sheffieldu","CH",1792245600000,"Bristol City","Sheffield United"],["CH_202610171400_derbycount_stokecity","CH",1792245600000,"Derby County","Stoke City"],["CH_202610171400_norwichcit_portsmouth","CH",1792245600000,"Norwich City","Portsmouth"],["CH_202610171400_southampto_boltonwand","CH",1792245600000,"Southampton","Bolton Wanderers"],["CH_202610171400_swanseacit_westhamuni","CH",1792245600000,"Swansea City","West Ham United"],["CH_202610171400_westbromwi_blackburnr","CH",1792245600000,"West Bromwich Albion","Blackburn Rovers"],["CH_202610171400_wrexham_prestonnor","CH",1792245600000,"Wrexham","Preston North End"],["GRE_202610171400_levadiakos_volos","GRE",1792245600000,"Levadiakos","Volos"],["ISTH_202610171400_afcwhytele_dartford","ISTH",1792245600000,"AFC Whyteleafe","Dartford"],["ISTH_202610171400_aveley_chathamtow","ISTH",1792245600000,"Aveley","Chatham Town"],["ISTH_202610171400_cheshunt_whitehawk","ISTH",1792245600000,"Cheshunt","Whitehawk"],["ISTH_202610171400_dulwichham_carshalton","ISTH",1792245600000,"Dulwich Hamlet","Carshalton Athletic"],["ISTH_202610171400_lewes_maldontipt","ISTH",1792245600000,"Lewes","Maldon & Tiptree"],["ISTH_202610171400_threebridg_enfieldtow","ISTH",1792245600000,"Three Bridges","Enfield Town"],["ISTH_202610171400_wellinguni_burgesshil","ISTH",1792245600000,"Welling United","Burgess Hill Town"],["ISTH_202610171400_wingatefin_stanwayrov","ISTH",1792245600000,"Wingate & Finchley","Stanway Rovers"],["L1_202610171400_barnsley_cambridgeu","L1",1792245600000,"Barnsley","Cambridge United"],["L1_202610171400_bradfordci_stevenage","L1",1792245600000,"Bradford City","Stevenage"],["L1_202610171400_leicesterc_doncasterr","L1",1792245600000,"Leicester City","Doncaster Rovers"],["L1_202610171400_leytonorie_blackpool","L1",1792245600000,"Leyton Orient","Blackpool"],["L1_202610171400_plymouthar_huddersfie","L1",1792245600000,"Plymouth Argyle","Huddersfield Town"],["L1_202610171400_sheffieldw_afcwimbled","L1",1792245600000,"Sheffield Wednesday","AFC Wimbledon"],["L1_202610171400_stockportc_bromley","L1",1792245600000,"Stockport County","Bromley"],["L1_202610171400_wiganathle_reading","L1",1792245600000,"Wigan Athletic","Reading"],["L1_202610171400_wycombewan_nottscount","L1",1792245600000,"Wycombe Wanderers","Notts County"],["L2_202610171400_accrington_gillingham","L2",1792245600000,"Accrington Stanley","Gillingham"],["L2_202610171400_colchester_exetercity","L2",1792245600000,"Colchester United","Exeter City"],["L2_202610171400_crewealexa_rochdale","L2",1792245600000,"Crewe Alexandra","Rochdale"],["L2_202610171400_grimsbytow_northampto","L2",1792245600000,"Grimsby Town","Northampton Town"],["L2_202610171400_newportcou_yorkcity","L2",1792245600000,"Newport County","York City"],["L2_202610171400_oldhamathl_cheltenham","L2",1792245600000,"Oldham Athletic","Cheltenham Town"],["L2_202610171400_portvale_chesterfie","L2",1792245600000,"Port Vale","Chesterfield"],["L2_202610171400_salfordcit_crawleytow","L2",1792245600000,"Salford City","Crawley Town"],["L2_202610171400_swindontow_walsall","L2",1792245600000,"Swindon Town","Walsall"],["L2_202610171400_tranmerero_barnet","L2",1792245600000,"Tranmere Rovers","Barnet"],["NLN_202610171400_afctelford_darlington","NLN",1792245600000,"AFC Telford United","Darlington"],["NLN_202610171400_buxton_worksoptow","NLN",1792245600000,"Buxton","Worksop Town"],["NLN_202610171400_hednesford_brackleyto","NLN",1792245600000,"Hednesford Town","Brackley Town"],["NLN_202610171400_merthyrtow_kingslynnt","NLN",1792245600000,"Merthyr Town","King's Lynn Town"],["NLN_202610171400_southport_radcliffe","NLN",1792245600000,"Southport","Radcliffe"],["NLS_202610171400_ebbsfleetu_westonsupe","NLS",1792245600000,"Ebbsfleet United","Weston-super-Mare"],["NLS_202610171400_farnboroug_dagenhamre","NLS",1792245600000,"Farnborough","Dagenham & Redbridge"],["NLS_202610171400_folkestone_afctotton","NLS",1792245600000,"Folkestone Invicta","AFC Totton"],["NLS_202610171400_maidstoneu_maidenhead","NLS",1792245600000,"Maidstone United","Maidenhead United"],["NLS_202610171400_sloughtown_horsham","NLS",1792245600000,"Slough Town","Horsham"],["NPL_202610171400_alfretonto_warrington","NPL",1792245600000,"Alfreton Town","Warrington Town"],["NPL_202610171400_ashtonunit_redcarathl","NPL",1792245600000,"Ashton United","Redcar Athletic"],["NPL_202610171400_bamberbrid_workington","NPL",1792245600000,"Bamber Bridge","Workington AFC"],["NPL_202610171400_gainsborou_hydeunited","NPL",1792245600000,"Gainsborough Trinity","Hyde United"],["NPL_202610171400_ilkestonto_avro","NPL",1792245600000,"Ilkeston Town","Avro"],["NPL_202610171400_lancasterc_leektown","NPL",1792245600000,"Lancaster City","Leek Town"],["NPL_202610171400_stocktonto_emleyafc","NPL",1792245600000,"Stockton Town","Emley AFC"],["NPL_202610171400_whitbytown_curzonasht","NPL",1792245600000,"Whitby Town","Curzon Ashton"],["PL_202610171400_brentford_liverpool","PL",1792245600000,"Brentford","Liverpool"],["PL_202610171400_fulham_hullcity","PL",1792245600000,"Fulham","Hull City"],["PL_202610171400_manchester_ipswichtow","PL",1792245600000,"Manchester City","Ipswich Town"],["SC_202610171400_aberdeen_stmirren","SC",1792245600000,"Aberdeen","St Mirren"],["SC_202610171400_hibernian_falkirk","SC",1792245600000,"Hibernian","Falkirk"],["SC_202610171400_kilmarnock_motherwell","SC",1792245600000,"Kilmarnock","Motherwell"],["SC_202610171400_stjohnston_dundeeunit","SC",1792245600000,"St Johnstone","Dundee United"],["SPL_202610171400_bishopssto_racingclub","SPL",1792245600000,"Bishop's Stortford","Racing Club Warwick"],["SPL_202610171400_bracknellt_chichester","SPL",1792245600000,"Bracknell Town","Chichester City"],["SPL_202610171400_bromsgrove_banburyuni","SPL",1792245600000,"Bromsgrove Sporting","Banbury United"],["SPL_202610171400_burytown_stourbridg","SPL",1792245600000,"Bury Town","Stourbridge"],["SPL_202610171400_chippenham_pooletown","SPL",1792245600000,"Chippenham Town","Poole Town"],["SPL_202610171400_eveshamuni_tauntontow","SPL",1792245600000,"Evesham United","Taunton Town"],["SPL_202610171400_halesowent_hitchintow","SPL",1792245600000,"Halesowen Town","Hitchin Town"],["SPL_202610171400_havantwate_hanworthvi","SPL",1792245600000,"Havant & Waterlooville","Hanworth Villa"],["SPL_202610171400_leamington_needhammar","SPL",1792245600000,"Leamington","Needham Market"],["SPL_202610171400_leightonto_rushalloly","SPL",1792245600000,"Leighton Town","Rushall Olympic"],["SPL_202610171400_malverntow_frometown","SPL",1792245600000,"Malvern Town","Frome Town"],["SPL_202610171400_stamford_realbedfor","SPL",1792245600000,"Stamford","Real Bedford"],["SPL_202610171400_stratfordt_peterborou","SPL",1792245600000,"Stratford Town","Peterborough Sports"],["LL_202610171415_villarreal_elche","LL",1792246500000,"Villarreal","Elche"],["AUT_202610171500_austrialus_lask","AUT",1792249200000,"Austria Lustenau","LASK"],["F1_202610171515_strasbourg_parissaint","F1",1792250100000,"Strasbourg","Paris Saint-Germain"],["SA_202610171600_bologna_inter","SA",1792252800000,"Bologna","Inter"],["BL_202610171630_bayernmuni_rbleipzig","BL",1792254600000,"Bayern Munich","RB Leipzig"],["LL_202610171630_realbetis_barcelona","LL",1792254600000,"Real Betis","Barcelona"],["PL_202610171630_newcastleu_astonvilla","PL",1792254600000,"Newcastle United","Aston Villa"],["ARG_202610171800_banfield_argentinos","ARG",1792260000000,"Banfield","Argentinos Juniors"],["MLS_202610171830_philadelph_charlottef","MLS",1792261800000,"Philadelphia Union","Charlotte FC"],["F1_202610171845_lille_brest","F1",1792262700000,"Lille","Brest"],["F1_202610171845_troyes_lens","F1",1792262700000,"Troyes","Lens"],["SA_202610171845_roma_genoa","SA",1792262700000,"Roma","Genoa"],["LL_202610171900_valencia_athleticcl","LL",1792263600000,"Valencia","Athletic Club"],["ARG_202610172030_independie_tigre","ARG",1792269000000,"Independiente Rivadavia","Tigre"],["ARG_202610172030_platense_lanus","ARG",1792269000000,"Platense","Lanus"],["MLS_202610172030_minnesotau_stlouiscit","MLS",1792269000000,"Minnesota United","St. Louis City"],["BRA_202610172100_botafogo_chapecoens","BRA",1792270800000,"Botafogo","Chapecoense"],["BRA_202610172130_atleticomi_coritiba","BRA",1792272600000,"Atletico Mineiro","Coritiba"],["BRA_202610172230_athleticop_palmeiras","BRA",1792276200000,"Athletico-PR","Palmeiras"],["ARG_202610172300_atleticotu_rosariocen","ARG",1792278000000,"Atletico Tucuman","Rosario Central"],["ARG_202610172300_velezsarsf_gimnasiame","ARG",1792278000000,"Velez Sarsfield","Gimnasia Mendoza"],["MX_202610172300_santoslagu_queretaro","MX",1792278000000,"Santos Laguna","Queretaro"],["MX_202610172307_guadalajar_tigresuanl","MX",1792278420000,"Guadalajara","Tigres UANL"],["MLS_202610172330_atlantauni_intermiami","MLS",1792279800000,"Atlanta United","Inter Miami"],["MLS_202610172330_newengland_chicagofir","MLS",1792279800000,"New England","Chicago Fire"],["MLS_202610172330_newyorkcit_losangeles","MLS",1792279800000,"New York City","Los Angeles FC"],["MLS_202610172330_newyorkred_torontofc","MLS",1792279800000,"New York Red Bulls","Toronto FC"],["MLS_202610172330_orlandocit_dcunited","MLS",1792279800000,"Orlando City","DC United"],["BRA_202610180000_saopaulo_vascodagam","BRA",1792281600000,"Sao Paulo","Vasco da Gama"],["MLS_202610180030_austinfc_vancouverw","MLS",1792283400000,"Austin FC","Vancouver Whitecaps"],["MLS_202610180030_houstondyn_fcdallas","MLS",1792283400000,"Houston Dynamo","FC Dallas"],["MLS_202610180030_sportingkc_realsaltla","MLS",1792283400000,"Sporting KC","Real Salt Lake"],["MX_202610180100_leon_america","MX",1792285200000,"Leon","America"],["MX_202610180100_toluca_atleticosa","MX",1792285200000,"Toluca","Atletico San Luis"],["MLS_202610180230_lagalaxy_sandiegofc","MLS",1792290600000,"LA Galaxy","San Diego FC"],["MLS_202610180230_portlandti_coloradora","MLS",1792290600000,"Portland Timbers","Colorado Rapids"],["MLS_202610180230_sanjoseear_nashvilles","MLS",1792290600000,"San Jose Earthquakes","Nashville SC"],["MLS_202610180230_seattlesou_cfmontreal","MLS",1792290600000,"Seattle Sounders","CF Montreal"],["MX_202610180300_cruzazul_juarez","MX",1792292400000,"Cruz Azul","Juarez"],["SA_202610181030_udinese_lecce","SA",1792319400000,"Udinese","Lecce"],["ALB_202610181130_vora_partizanit","ALB",1792323000000,"Vora","Partizani Tirana"],["LL_202610181200_osasuna_racingsant","LL",1792324800000,"Osasuna","Racing Santander"],["F1_202610181300_angers_marseille","F1",1792328400000,"Angers","Marseille"],["GRE_202610181300_kalamata_ofi","GRE",1792328400000,"Kalamata","OFI"],["PL_202610181300_afcbournem_sunderland","PL",1792328400000,"AFC Bournemouth","Sunderland"],["PL_202610181300_brightonho_crystalpal","PL",1792328400000,"Brighton & Hove Albion","Crystal Palace"],["PL_202610181300_leedsunite_manchester","PL",1792328400000,"Leeds United","Manchester United"],["SA_202610181300_fiorentina_como","SA",1792328400000,"Fiorentina","Como"],["BL_202610181330_bayerlever_freiburg","BL",1792330200000,"Bayer Leverkusen","Freiburg"],["GRE_202610181400_panetoliko_olympiacos","GRE",1792332000000,"Panetolikos","Olympiacos"],["SC_202610181400_celtic_hearts","SC",1792332000000,"Celtic","Hearts"],["LL_202610181415_celtavigo_alaves","LL",1792332900000,"Celta Vigo","Alaves"],["GRE_202610181430_panathinai_asterastri","GRE",1792333800000,"Panathinaikos","Asteras Tripolis"],["F1_202610181515_lehavre_auxerre","F1",1792336500000,"Le Havre","Auxerre"],["F1_202610181515_lorient_monaco","F1",1792336500000,"Lorient","Monaco"],["F1_202610181515_parisfc_rennes","F1",1792336500000,"Paris FC","Rennes"],["BL_202610181530_borussiamo_hoffenheim","BL",1792337400000,"Borussia Monchengladbach","Hoffenheim"],["PL_202610181530_nottingham_arsenal","PL",1792337400000,"Nottingham Forest","Arsenal"],["SA_202610181600_acmilan_atalanta","SA",1792339200000,"AC Milan","Atalanta"],["ALB_202610181630_egnatiarro_vllazniash","ALB",1792341000000,"Egnatia Rrogozhine","Vllaznia Shkoder"],["LL_202610181630_malaga_realsocied","LL",1792341000000,"Malaga","Real Sociedad"],["ARG_202610181745_racingclub_independie","ARG",1792345500000,"Racing Club","Independiente"],["F1_202610181845_lyon_nice","F1",1792349100000,"Lyon","Nice"],["SA_202610181845_juventus_lazio","SA",1792349100000,"Juventus","Lazio"],["BRA_202610181900_fluminense_santos","BRA",1792350000000,"Fluminense","Santos"],["BRA_202610181900_gremio_cruzeiro","BRA",1792350000000,"Gremio","Cruzeiro"],["LL_202610181900_realmadrid_sevilla","LL",1792350000000,"Real Madrid","Sevilla"],["ARG_202610182100_estudiante_sanlorenzo","ARG",1792357200000,"Estudiantes","San Lorenzo"],["ARG_202610182100_estudiante_aldosivi","ARG",1792357200000,"Estudiantes Rio Cuarto","Aldosivi"],["MLS_202610182100_fccincinna_columbuscr","MLS",1792357200000,"FC Cincinnati","Columbus Crew"],["BRA_202610182130_bahia_flamengo","BRA",1792359000000,"Bahia","Flamengo"],["BRA_202610182230_remo_rbbraganti","BRA",1792362600000,"Remo","RB Bragantino"],["ARG_202610182315_belgrano_riverplate","ARG",1792365300000,"Belgrano","River Plate"],["MX_202610190100_monterrey_pachuca","MX",1792371600000,"Monterrey","Pachuca"],["SA_202610191630_monza_cagliari","SA",1792427400000,"Monza","Cagliari"],["TR_202610191700_trabzonspo_besiktas","TR",1792429200000,"Trabzonspor","Besiktas"],["ISTH_202610191845_aveley_maldontipt","ISTH",1792435500000,"Aveley","Maldon & Tiptree"],["SA_202610191845_parma_torino","SA",1792435500000,"Parma","Torino"],["SPL_202610191845_redditchun_worcesterc","SPL",1792435500000,"Redditch United","Worcester City"],["LL_202610191900_getafe_rayovallec","LL",1792436400000,"Getafe","Rayo Vallecano"],["PL_202610191900_tottenhamh_coventryci","PL",1792436400000,"Tottenham Hotspur","Coventry City"],["ARG_202610192200_newellsold_centralcor","ARG",1792447200000,"Newells Old Boys","Central Cordoba SdE"],["ARG_202610192200_sarmiento_barracasce","ARG",1792447200000,"Sarmiento","Barracas Central"],["BRA_202610192300_corinthian_vitoria","BRA",1792450800000,"Corinthians","Vitoria"]];
+
+/* ---------- countries, flags, leagues ---------- */
+const FS=(b)=>'<svg class="flag" viewBox="0 0 22 15" aria-hidden="true">'+b+'</svg>';
+const FLAGS={
+ eu:FS('<rect width="22" height="15" fill="#0B3D91"/>'+[0,1,2,3,4,5,6,7,8,9,10,11].map(i=>`<circle cx="${(11+4.6*Math.sin(i*Math.PI/6)).toFixed(1)}" cy="${(7.5-4.6*Math.cos(i*Math.PI/6)).toFixed(1)}" r=".9" fill="#FFD200"/>`).join('')),
+ en:FS('<rect width="22" height="15" fill="#fff"/><rect x="9" width="4" height="15" fill="#C8102E"/><rect y="5.5" width="22" height="4" fill="#C8102E"/>'),
+ it:FS('<rect width="7.4" height="15" fill="#009246"/><rect x="7.3" width="7.4" height="15" fill="#fff"/><rect x="14.6" width="7.4" height="15" fill="#CE2B37"/>'),
+ es:FS('<rect width="22" height="15" fill="#AA151B"/><rect y="3.75" width="22" height="7.5" fill="#F1BF00"/>'),
+ de:FS('<rect width="22" height="5" fill="#000"/><rect y="5" width="22" height="5" fill="#DD0000"/><rect y="10" width="22" height="5" fill="#FFCE00"/>'),
+ fr:FS('<rect width="7.4" height="15" fill="#0055A4"/><rect x="7.3" width="7.4" height="15" fill="#fff"/><rect x="14.6" width="7.4" height="15" fill="#EF4135"/>'),
+ al:FS('<rect width="22" height="15" fill="#E41E20"/><path d="M11 3l-1.6 1.6-2.4-.6 1.6 2.4-1.4 3.2 3-1.2 1 2.6 1-2.6 3 1.2-1.4-3.2 1.6-2.4-2.4.6z" fill="#111"/><circle cx="9.2" cy="3.4" r=".9" fill="#111"/><circle cx="12.8" cy="3.4" r=".9" fill="#111"/>'),
+ tr:FS('<rect width="22" height="15" fill="#E30A17"/><circle cx="8.3" cy="7.5" r="3.6" fill="#fff"/><circle cx="9.4" cy="7.5" r="2.9" fill="#E30A17"/><circle cx="13.3" cy="7.5" r="1.3" fill="#fff"/>'),
+ sc:FS('<rect width="22" height="15" fill="#0065BD"/><path d="M0 0L22 15M22 0L0 15" stroke="#fff" stroke-width="2.2"/>'),
+ at:FS('<rect width="22" height="5" fill="#ED2939"/><rect y="5" width="22" height="5" fill="#fff"/><rect y="10" width="22" height="5" fill="#ED2939"/>'),
+ gr:FS('<rect width="22" height="15" fill="#0D5EAF"/><path d="M0 4.5H22M0 10.5H22" stroke="#fff" stroke-width="1.7"/><rect width="8.4" height="8.4" fill="#0D5EAF"/><path d="M4.2 0V8.4M0 4.2H8.4" stroke="#fff" stroke-width="1.7"/>'),
+ us:FS('<rect width="22" height="15" fill="#fff"/>'+[0,1,2,3,4,5,6].map(i=>`<rect y="${(i*2.14).toFixed(2)}" width="22" height="1.07" fill="#B22234"/>`).join('')+'<rect width="9" height="8" fill="#3C3B6E"/>'),
+ mx:FS('<rect width="7.4" height="15" fill="#006847"/><rect x="7.3" width="7.4" height="15" fill="#fff"/><rect x="14.6" width="7.4" height="15" fill="#CE1126"/><circle cx="11" cy="7.5" r="1.6" fill="#8B5A2B"/>'),
+ ar:FS('<rect width="22" height="15" fill="#74ACDF"/><rect y="5" width="22" height="5" fill="#fff"/><circle cx="11" cy="7.5" r="1.3" fill="#F6B40E"/>'),
+ br:FS('<rect width="22" height="15" fill="#009C3B"/><path d="M11 1.8L20 7.5 11 13.2 2 7.5z" fill="#FFDF00"/><circle cx="11" cy="7.5" r="3" fill="#002776"/>')
+};
+const COUNTRIES=['eu','en','it','es','de','fr','al','tr','sc','at','gr','us','mx','ar','br'];
+const LEAGUES=[
+ {k:'UCL',n:'Champions League',c:'eu',base:68},
+ {k:'UEL',n:'Europa League',c:'eu',base:64},
+ {k:'UECL',n:'Conference League',c:'eu',base:56},
+ {k:'PL',n:'Premier League',c:'en',base:72},
+ {k:'CH',n:'Championship',c:'en',base:62},
+ {k:'L1',n:'League One',c:'en',base:54},
+ {k:'L2',n:'League Two',c:'en',base:49},
+ {k:'NL',n:'National League',c:'en',base:43,tag:'semi'},
+ {k:'NLN',n:'National League North',c:'en',base:38,tag:'semi'},
+ {k:'NLS',n:'National League South',c:'en',base:38,tag:'semi'},
+ {k:'ISTH',n:'Isthmian League Premier',c:'en',base:32,tag:'amateur'},
+ {k:'NPL',n:'Northern Premier League',c:'en',base:31,tag:'amateur'},
+ {k:'SPL',n:'Southern League Premier',c:'en',base:31,tag:'amateur'},
+ {k:'SA',n:'Serie A',c:'it',base:70},
+ {k:'LL',n:'La Liga',c:'es',base:69},
+ {k:'LL2',n:'La Liga 2',c:'es',base:55},
+ {k:'BL',n:'Bundesliga',c:'de',base:68,gf:1.1},
+ {k:'F1',n:'Ligue 1',c:'fr',base:66},
+ {k:'ALB',n:'Kategoria Superiore',c:'al',base:38},
+ {k:'ALB2',n:'Kategoria e Parë',c:'al',base:28},
+ {k:'TR',n:'Süper Lig',c:'tr',base:58},
+ {k:'SC',n:'Scottish Premiership',c:'sc',base:52},
+ {k:'AUT',n:'Austrian Bundesliga',c:'at',base:52},
+ {k:'GRE',n:'Super League Greece',c:'gr',base:50},
+ {k:'MLS',n:'Major League Soccer',c:'us',base:55,gf:1.1},
+ {k:'MX',n:'Liga MX',c:'mx',base:55,gf:1.05},
+ {k:'ARG',n:'Primera División',c:'ar',base:56,gf:.88},
+ {k:'BRA',n:'Brasileirão',c:'br',base:58,gf:.95}
+];
+const LG={};LEAGUES.forEach((l,i)=>{LG[l.k]=l;l.i=i;if(!l.gf)l.gf=1});
+
+/* strength ratings: well-known clubs, everyone else = league base +/- a stable offset from the name */
+const RATING={
+ 'manchester city':91,'arsenal':89,'liverpool':87,'chelsea':82,'manchester united':80,'tottenham hotspur':79,'newcastle united':80,'aston villa':77,'brighton & hove albion':72,'crystal palace':72,'afc bournemouth':71,'brentford':70,'fulham':69,'everton':68,'nottingham forest':69,'leeds united':68,'sunderland':64,'coventry city':64,'ipswich town':63,'hull city':60,
+ 'real madrid':90,'barcelona':89,'atletico madrid':84,'athletic club':77,'villarreal':77,'real sociedad':76,'real betis':75,'sevilla':72,'valencia':70,'celta vigo':70,'osasuna':68,'espanyol':64,'alaves':64,'elche':62,'levante':62,'racing santander':59,'malaga':58,'deportivo la coruna':59,
+ 'bayern munich':92,'borussia dortmund':82,'bayer leverkusen':84,'rb leipzig':80,'eintracht frankfurt':74,'stuttgart':76,'freiburg':70,'werder bremen':70,'hoffenheim':69,'mainz 05':66,'mainz':66,'augsburg':64,'union berlin':66,'borussia monchengladbach':67,'schalke 04':64,'hamburger sv':64,'cologne':66,'paderborn':58,'elversberg':56,
+ 'inter':88,'napoli':82,'juventus':82,'ac milan':80,'atalanta':80,'roma':77,'lazio':75,'fiorentina':72,'bologna':72,'como':68,'torino':66,'genoa':64,'udinese':64,'lecce':58,'venezia':58,'sassuolo':62,'frosinone':56,'monza':58,'cagliari':60,'parma':62,
+ 'paris saint-germain':91,'marseille':74,'monaco':74,'lyon':72,'lille':72,'lens':72,'rennes':68,'nice':69,'brest':64,'strasbourg':64,'auxerre':58,'lorient':56,'paris fc':58,'toulouse':60,'angers':54,'le havre':54,'troyes':54,'le mans':52,
+ 'porto':80,'benfica':80,'sporting cp':81,'braga':72,'psv eindhoven':79,'ajax':76,'feyenoord':76,'twente':68,'az':68,'galatasaray':76,'fenerbahce':76,'besiktas':72,'trabzonspor':68,'olympiakos':70,'panathinaikos':68,'paok':68,'aek athens':68,'celtic':72,'rangers':72,'hearts':60,'club brugge':74,'anderlecht':68,'gent':64,'union saint-gilloise':66,'salzburg':70,'sturm graz':66,'slavia prague':68,'sparta prague':66,'viktoria plzen':62,'shakhtar donetsk':68,'dinamo zagreb':66,'crvena zvezda':66,'bodo/glimt':68,'viking':52,'sabah fc':46,'slovan bratislava':50,'lask':60,'copenhagen':66,'midtjylland':62,'ferencvaros':62,'lech poznan':64,'legia warszawa':64,'kairat':56,'paphos':54,'egnatia':44,'omonia nicosia':54,
+ 'inter miami':72,'los angeles fc':68,'la galaxy':62,'seattle sounders':64,'columbus crew':62,'cincinnati':64,'fc cincinnati':64,
+ 'river plate':76,'boca juniors':74,'racing club':68,'independiente':64,'estudiantes':68,'velez sarsfield':66,'lanus':64,
+ 'flamengo':78,'palmeiras':78,'botafogo':70,'fluminense':68,'atletico mineiro':68,'corinthians':66,'sao paulo':66,'santos':60,'gremio':64,'internacional':66,'cruzeiro':66,'bahia':64,'vasco da gama':62,
+ 'america':68,'tigres uanl':68,'monterrey':68,'cruz azul':66,'pumas unam':62,'toluca':66,'guadalajara':64,'pachuca':64
+};
+function nh(s){let a=5381;for(let i=0;i<s.length;i++)a=((a*33)^s.charCodeAt(i))>>>0;return a}
+function rate(name,lg){const k=name.toLowerCase();if(RATING[k])return RATING[k];return LG[lg].base+((nh(k)%13)-6)}
+
+/* ---------- matches (real fixtures; kick-off stored as UTC) ---------- */
+const MATCHES=[];const MB={};
+FX.forEach(f=>{
+ const L=LG[f[1]];if(!L)return;
+ const rh=rate(f[3],f[1]),ra=rate(f[4],f[1]),d=(rh-ra)/100;
+ const m={id:f[0],lg:f[1],ms:f[2],home:f[3],away:f[4],h0:f[3],a0:f[4],strength:rh+ra,
+  lh:1.32*L.gf*Math.exp(1.6*d+.1),la:1.08*L.gf*Math.exp(-1.6*d),_mk:{}};
+ MATCHES.push(m);MB[m.id]=m;
+});
+MATCHES.sort((a,b)=>a.ms-b.ms||LG[a.lg].i-LG[b.lg].i);
+const LOC=()=>({sq:'sq-AL',en:'en-GB',de:'de-CH'}[LANG]||'en-GB');
+const dkey=ms=>new Date(ms).toLocaleDateString('sv-SE');
+const DAYKEYS=[...new Set(MATCHES.map(m=>dkey(m.ms)))].sort();
+MATCHES.forEach(m=>{m.day=dkey(m.ms)});
+function dayLabel(k,o){const[y,mo,d]=k.split('-').map(Number);return new Intl.DateTimeFormat(LOC(),Object.assign({timeZone:'UTC'},o)).format(new Date(Date.UTC(y,mo-1,d,12)))}
+function pickDay(){const t=dkey(Date.now());if(DAYKEYS.includes(t))return t;return DAYKEYS.find(k=>k>=t)||DAYKEYS[0]}
+function fmtTime(m){if(m.timeOvr)return m.timeOvr;return new Date(m.ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false})}
+const started=m=>Date.now()>=m.ms;
+
+/* ---------- odds model ---------- */
+function pois(k,l){let p=Math.exp(-l);for(let i=1;i<=k;i++)p*=l/i;return p}
+function cdf(k,l){let s=0;for(let i=0;i<=k;i++)s+=pois(i,l);return Math.min(1,s)}
+function g3(l1,l2){let h=0,d=0,a=0;for(let i=0;i<=12;i++){const pi=pois(i,l1);for(let j=0;j<=12;j++){const p=pi*pois(j,l2);if(i>j)h+=p;else if(i===j)d+=p;else a+=p}}const s=h+d+a;return[h/s,d/s,a/s]}
+const od=p=>Math.min(250,Math.max(1.01,Math.round(100/(Math.max(p,1e-5)*1.06))/100));
+const cmp=(x,y)=>x>y?0:x===y?1:2;
+const TABS=['main','goals','h1','h2'];
+const FT_LINES=[.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5];
+const HALF_LINES=[.5,1.5,2.5,3.5];
+const okey=oid=>oid.replace(/\./g,'_');
+let OVR={}; /* admin overrides: {matchId:{home,away,time,odds:{key:value}}} */
+function applyOvr(m){const o=OVR[m.id]||{};m.home=o.home||m.h0;m.away=o.away||m.a0;m.timeOvr=o.time||'';m._mk={}}
+
+function build(m){
+ if(m._mk[LANG])return m._mk[LANG];
+ const ov=(OVR[m.id]&&OVR[m.id].odds)||{};
+ const defs=[],lh=m.lh,la=m.la,lt=lh+la,H=m.home,A=m.away;
+ const M=(id,tabs,title,cols,list)=>defs.push({id,tabs,title,cols,wide:list.length>=9,half:/^(htft|h1h2|h1x|h1ou|h2x|h2ou|most)/.test(id),opts:list.map(o=>{
+  const base=od(o.p),oid=id+':'+o.k,v=ov[okey(oid)];
+  return {id:oid,l:o.l,base,odds:(typeof v==='number'&&v>=1.01)?v:base,t:o.t}})});
+ const sh=r=>[r.h-r.h1,r.a-r.a1];
+ let [h,d,a]=g3(lh,la);
+ M('ft',['main'],t('m_ft'),3,[{k:'1',l:H,p:h,t:r=>r.h>r.a},{k:'X',l:t('draw'),p:d,t:r=>r.h===r.a},{k:'2',l:A,p:a,t:r=>r.h<r.a}]);
+ M('dc',['main'],t('m_dc'),3,[{k:'1X',l:t('or_draw',H),p:h+d,t:r=>r.h>=r.a},{k:'12',l:t('or_team',H,A),p:h+a,t:r=>r.h!==r.a},{k:'X2',l:t('draw_or',A),p:d+a,t:r=>r.h<=r.a}]);
+ for(const L of FT_LINES){const pu=cdf(Math.floor(L),lt),ovl=L>=4.5?t('over_p',L,Math.floor(L)+1):t('over',L);
+  M('ou'+L,L===2.5?['main','goals']:['goals'],t('m_ou',L),2,[{k:'o',l:ovl,p:1-pu,t:r=>r.h+r.a>L},{k:'u',l:t('under',L),p:pu,t:r=>r.h+r.a<L}])}
+ const by=(1-Math.exp(-lh))*(1-Math.exp(-la));
+ M('btts',['main','goals'],t('m_btts'),2,[{k:'y',l:t('yes'),p:by,t:r=>r.h>0&&r.a>0},{k:'n',l:t('no'),p:1-by,t:r=>!(r.h>0&&r.a>0)}]);
+ const l1h=lh*.45,l1a=la*.45,l2h=lh*.55,l2a=la*.55,t1=lt*.45,t2=lt*.55;
+ const S3=['1','X','2'];
+ const P=[[0,0,0],[0,0,0],[0,0,0]];let tot=0;
+ for(let a1=0;a1<=6;a1++)for(let b1=0;b1<=6;b1++){const p1=pois(a1,l1h)*pois(b1,l1a);
+  for(let a2=0;a2<=6;a2++)for(let b2=0;b2<=6;b2++){const p=p1*pois(a2,l2h)*pois(b2,l2a);P[cmp(a1,b1)][cmp(a1+a2,b1+b2)]+=p;tot+=p}}
+ const hf=[];
+ for(let i=0;i<3;i++)for(let j=0;j<3;j++)hf.push({k:i+''+j,l:S3[i]+' / '+S3[j],p:P[i][j]/tot,t:r=>cmp(r.h1,r.a1)===i&&cmp(r.h,r.a)===j});
+ M('htft',['main','h1'],t('m_htft',H,A),3,hf);
+ const W1=g3(l1h,l1a),W2=g3(l2h,l2a),hh=[];
+ for(let i=0;i<3;i++)for(let j=0;j<3;j++)hh.push({k:i+''+j,l:S3[i]+' / '+S3[j],p:W1[i]*W2[j],t:r=>cmp(r.h1,r.a1)===i&&cmp(r.h-r.h1,r.a-r.a1)===j});
+ M('h1h2',['main','h2'],t('m_h1h2',H,A),3,hh);
+ let rest=1;const ex=[];
+ for(let k=0;k<=8;k++){const p=pois(k,lt);rest-=p;ex.push({k:String(k),l:t('goals_n',k),p,t:r=>r.h+r.a===k})}
+ ex.push({k:'9',l:t('goals_ge',9),p:Math.max(rest,.0001),t:r=>r.h+r.a>=9});
+ M('ex',['goals'],t('m_ex'),3,ex);
+ for(const [s,nm,l] of [['h',H,lh],['a',A,la]])for(const L of [.5,1.5,2.5,3.5,4.5]){const pu=cdf(Math.floor(L),l);
+  M('tg'+s+L,['goals'],t('m_tg',nm,L),2,[{k:'o',l:t('over',L),p:1-pu,t:r=>r[s]>L},{k:'u',l:t('under',L),p:pu,t:r=>r[s]<L}])}
+ [h,d,a]=g3(l1h,l1a);
+ M('h1x',['h1'],t('m_h1x'),3,[{k:'1',l:H,p:h,t:r=>r.h1>r.a1},{k:'X',l:t('draw'),p:d,t:r=>r.h1===r.a1},{k:'2',l:A,p:a,t:r=>r.h1<r.a1}]);
+ for(const L of HALF_LINES){const pu=cdf(Math.floor(L),t1);
+  M('h1ou'+L,['h1'],t('m_h1ou',L),2,[{k:'o',l:t('over',L),p:1-pu,t:r=>r.h1+r.a1>L},{k:'u',l:t('under',L),p:pu,t:r=>r.h1+r.a1<L}])}
+ [h,d,a]=g3(l2h,l2a);
+ M('h2x',['h2'],t('m_h2x'),3,[{k:'1',l:H,p:h,t:r=>sh(r)[0]>sh(r)[1]},{k:'X',l:t('draw'),p:d,t:r=>sh(r)[0]===sh(r)[1]},{k:'2',l:A,p:a,t:r=>sh(r)[0]<sh(r)[1]}]);
+ for(const L of HALF_LINES){const pu=cdf(Math.floor(L),t2);
+  M('h2ou'+L,['h2'],t('m_h2ou',L),2,[{k:'o',l:t('over',L),p:1-pu,t:r=>sh(r)[0]+sh(r)[1]>L},{k:'u',l:t('under',L),p:pu,t:r=>sh(r)[0]+sh(r)[1]<L}])}
+ let w1=0,w2=0,we=0;
+ for(let i=0;i<=14;i++)for(let j=0;j<=14;j++){const p=pois(i,t1)*pois(j,t2);if(i>j)w1+=p;else if(i<j)w2+=p;else we+=p}
+ M('most',['h2'],t('m_most'),3,[{k:'1',l:t('half1'),p:w1,t:r=>r.h1+r.a1>(r.h-r.h1)+(r.a-r.a1)},{k:'x',l:t('equal'),p:we,t:r=>r.h1+r.a1===(r.h-r.h1)+(r.a-r.a1)},{k:'2',l:t('half2'),p:w2,t:r=>r.h1+r.a1<(r.h-r.h1)+(r.a-r.a1)}]);
+ return m._mk[LANG]=defs;
+}
+function optInfo(mid,oid){
+ const mkid=oid.split(':')[0],mk=build(MB[mid]).find(x=>x.id===mkid);
+ return{mk,o:mk&&mk.opts.find(o=>o.id===oid)};
+}
+
+/* ---------- state & store (shared db when available, else this browser) ---------- */
+let DB=null,ROOM=null,UC=null,DL=null;
+const ADMIN='barcode34';
+let USERS={},BETS={},RES={},REAL={};const LIVE={};
+{const L0=ld('bm_local4',null);if(L0){USERS=L0.users||{};BETS=L0.bets||{};RES=L0.res||{};OVR=L0.ovr||{}}}
+MATCHES.forEach(applyOvr);
+let THEME=ld('bm_theme','auto'),ACCENT=ld('bm_accent','green'),themeSet=false;
+const S={view:'home',day:pickDay(),league:'all',open:{eu:true,en:true},mid:null,tab:'main',sel:[],mode:'single',stake:50,slipOpen:false,auth:null,dlg:null,
+ sess:ld('bm_sess4',null),last:ld('bm_last4',null),editOdds:false};
+const cu=()=>S.sess&&USERS[S.sess]||null;
+const isAdmin=()=>{const u=cu();return !!u&&u.role==='admin'};
+const resOf=m=>REAL[m.id]||RES[m.id]||null;
+const locked=m=>!!(resOf(m)||LIVE[m.id]||started(m));
+const clone=o=>JSON.parse(JSON.stringify(o));
+function hsh(s){let a=5381,b=52711;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);a=((a*33)^c)|0;b=((b*33)^c)|0}return(a>>>0).toString(36)+(b>>>0).toString(36)}
+let tt;
+function toast(x){const e=$('#toast');e.textContent=x;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),3800)}
+
+function applyTheme(){
+ const r=document.documentElement;
+ if(THEME==='light'||THEME==='dark'){r.setAttribute('data-theme',THEME);themeSet=true}
+ else if(themeSet){r.removeAttribute('data-theme');themeSet=false}
+ if(ACCENT&&ACCENT!=='green')r.setAttribute('data-accent',ACCENT);else r.removeAttribute('data-accent');
+}
+
+function saveLocal(){if(!DB)sv('bm_local4',{users:USERS,bets:BETS,res:RES,ovr:OVR})}
+async function wr(path,data){
+ if(!DB){saveLocal();return true}
+ try{const r=DB.doc(path);if(data===null)await r.delete();else await r.set(data);return true}
+ catch(e){toast(t('e_write'));return false}
+}
+const putUser=k=>wr('users/'+k,USERS[k]);
+const putBet=id=>wr('bets/'+id,BETS[id]);
+const putRes=mid=>wr('results/'+mid,RES[mid]);
+const putOvr=mid=>wr('ovr/'+mid,OVR[mid]&&Object.keys(OVR[mid]).length?OVR[mid]:null);
+
+let pend=false;
+function softRender(){
+ const a=document.activeElement;
+ if(a&&(a.tagName==='INPUT'||a.tagName==='SELECT')&&a.closest('#main,#adm,#slip')){pend=true;return}
+ renderHeader();renderRail();renderMain();renderSide();renderSlip();
+}
+document.addEventListener('focusout',()=>{if(pend){pend=false;setTimeout(softRender,80)}});
+
+function onlineNames(){
+ const set=new Map();
+ if(ROOM){for(const p of ROOM.peers()){const u=p.presence&&p.presence.u;if(typeof u==='string'&&u)set.set(u.toLowerCase(),u)}}
+ const me=cu();if(me)set.set(me.name.toLowerCase(),me.name);
+ return [...set.values()];
+}
+function setPresence(){
+ if(!ROOM)return;const u=cu();
+ ROOM.presence(u?{u:u.name}:{u:null}).catch(()=>{});
+}
+
+/* ---------- accounts: login with username + password, accounts are made by the admin ---------- */
+async function getUserFresh(key){
+ if(DB){try{const s=await DB.doc('users/'+key).get();return s.exists?clone(s.data()):null}catch(e){return USERS[key]||null}}
+ return USERS[key]||null;
+}
+const NAME_RE=/^[A-Za-z0-9_.-]{3,20}$/;
+function openAuth(change){S.auth={change:!!change};renderModal();const f=$('#au-user')||$('#au-pass');if(f)f.focus()}
+function closeModal(){S.auth=null;S.dlg=null;renderModal()}
+async function doAuth(){
+ const err=x=>{const e=$('#au-err');if(e)e.textContent=x};
+ const fixed=S.last&&!S.auth.change;
+ const name=(fixed?S.last:($('#au-user').value||'')).trim(),key=name.toLowerCase(),pass=$('#au-pass').value||'';
+ if(!NAME_RE.test(name))return err(t('e_user'));
+ if(pass.length<4)return err(t('e_pass'));
+ let u=await getUserFresh(key);
+ if(!u){
+  if(key!==ADMIN)return err(t('e_wrong'));
+  if(UC){const own=await UC.isOwner();if(!own)return err(t('e_notowner'))}
+  u={name:'Barcode34',hash:hsh(key+pass),balance:35000,role:'admin'};
+  USERS[key]=u;if(!(await putUser(key))){delete USERS[key];return}
+ }else if(u.hash!==hsh(key+pass))return err(t('e_wrong'));
+ USERS[key]=u;S.sess=key;S.last=u.name;sv('bm_sess4',key);sv('bm_last4',u.name);
+ closeModal();setPresence();renderAll();toast(t('back_in',u.name));settleMine();
+}
+function logout(){
+ S.sess=null;sv('bm_sess4',null);S.sel=[];if(S.view==='admin'||S.view==='bets')S.view='home';
+ setPresence();renderAll();toast(t('logout_ok'));
+}
+
+/* ---------- admin actions (p = id prefix of the form: "ad" panel or "q" side card) ---------- */
+async function createUser(p){
+ const a=cu();if(!a||a.role!=='admin')return;
+ const name=($('#'+p+'-user').value||'').trim(),key=name.toLowerCase(),pass=$('#'+p+'-pass').value||'';
+ const amt=r2(parseFloat($('#'+p+'-amt').value)||0);
+ if(!NAME_RE.test(name))return toast(t('e_user'));
+ if(pass.length<4)return toast(t('e_pass'));
+ if(amt<0)return toast(t('e_amt'));
+ if(amt>a.balance)return toast(t('e_funds'));
+ if(await getUserFresh(key))return toast(t('e_exists'));
+ USERS[key]={name,hash:hsh(key+pass),balance:amt,role:'user'};a.balance=r2(a.balance-amt);
+ renderAll();
+ if(await putUser(key))await putUser(S.sess);
+ toast(t('ad_created',name));
+}
+async function transfer(p){
+ const a=cu();if(!a||a.role!=='admin')return;
+ const key=$('#'+p+'-to').value,amt=r2(parseFloat($('#'+p+'-amt2').value)||0);
+ if(!key||!USERS[key])return toast(t('e_nouser'));
+ if(!(amt>0))return toast(t('e_amt'));
+ if(amt>a.balance)return toast(t('e_funds'));
+ USERS[key].balance=r2(USERS[key].balance+amt);a.balance=r2(a.balance-amt);
+ renderAll();
+ if(await putUser(key))await putUser(S.sess);
+ toast(t('ad_sent',gbp(amt),USERS[key].name));
+}
+const origTime=m=>new Date(m.ms).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',hour12:false});
+async function saveMatch(){
+ const m=MB[S.mid];if(!m||!isAdmin())return;
+ const h=($('#em-home').value||'').trim().slice(0,30),a=($('#em-away').value||'').trim().slice(0,30),tm=($('#em-time').value||'').trim();
+ const o=OVR[m.id]=OVR[m.id]||{};
+ if(h&&h!==m.h0)o.home=h;else delete o.home;
+ if(a&&a!==m.a0)o.away=a;else delete o.away;
+ if(/^\d{2}:\d{2}$/.test(tm)&&tm!==origTime(m))o.time=tm;else delete o.time;
+ applyOvr(m);renderAll();await putOvr(m.id);toast(t('saved'));
+}
+async function saveOdds(reset){
+ const m=MB[S.mid];if(!m||!isAdmin())return;
+ const o=OVR[m.id]=OVR[m.id]||{};
+ if(reset){delete o.odds}
+ else{
+  const od2={},inputs=[...document.querySelectorAll('#main input[data-oid]')];
+  inputs.forEach(i=>{
+   const v=parseFloat(i.value),base=parseFloat(i.dataset.base);
+   if(isFinite(v)&&v>=1.01&&Math.abs(v-base)>1e-9)od2[okey(i.dataset.oid)]=r2(v);
+  });
+  const onTab=new Set(inputs.map(i=>okey(i.dataset.oid))),prev=o.odds||{};
+  for(const k in prev)if(!onTab.has(k))od2[k]=prev[k];
+  if(Object.keys(od2).length)o.odds=od2;else delete o.odds;
+ }
+ m._mk={};renderAll();await putOvr(m.id);toast(t('saved'));
+}
+
+/* ---------- bets ---------- */
+function calc(){
+ const n=S.sel.length,st=r2(Math.max(0,parseFloat(S.stake)||0));
+ const canAcca=n>1&&new Set(S.sel.map(s=>s.mid)).size===n;
+ if(S.mode==='acca'&&!canAcca)S.mode='single';
+ if(S.mode==='acca'){const o=S.sel.reduce((p,s)=>p*s.odds,1);return{n,st,canAcca,stake:st,ret:st*o,odds:o}}
+ return{n,st,canAcca,stake:st*n,ret:S.sel.reduce((p,s)=>p+s.odds*st,0),odds:null};
+}
+function pick(mid,oid){
+ const m=MB[mid];if(locked(m))return;
+ const i=S.sel.findIndex(s=>s.mid===mid&&s.oid===oid);
+ if(i>=0){S.sel.splice(i,1)}
+ else{
+  const mkid=oid.split(':')[0],o=optInfo(mid,oid).o;
+  S.sel=S.sel.filter(s=>!(s.mid===mid&&s.oid.split(':')[0]===mkid));
+  S.sel.push({mid,oid,odds:o.odds});
+ }
+ renderMain();renderSlip();
+}
+function uid(){return 'B'+Date.now().toString(36).toUpperCase()+Math.floor(Math.random()*46656).toString(36).toUpperCase()}
+async function place(){
+ const u=cu();if(!u){openAuth();return}
+ const c=calc();if(!c.n)return;
+ if(c.st<1)return toast(t('min_stake'));
+ if(c.stake>u.balance+1e-9)return toast(t('no_funds'));
+ if(S.sel.some(s=>locked(MB[s.mid]))){S.sel=S.sel.filter(s=>!locked(MB[s.mid]));renderMain();renderSlip();return toast(t('e_closed'))}
+ const legs=S.sel.map(s=>({mid:s.mid,oid:s.oid,odds:s.odds,res:null})),id=uid();
+ const b=S.mode==='acca'
+  ?{id,type:'acca',legs,stake:c.st,odds:r2(c.odds)}
+  :{id,type:legs.length>1?'multi':'single',legs,stake:r2(c.st*legs.length),unit:c.st,odds:legs.length===1?legs[0].odds:0};
+ Object.assign(b,{user:S.sess,uname:u.name,ts:Date.now(),status:'pending',paid:0});
+ BETS[id]=b;u.balance=r2(u.balance-b.stake);
+ const ret=c.ret;S.sel=[];S.slipOpen=false;
+ saveLocal();renderAll();toast(t('placed',gbp(ret)));
+ if(await putUser(S.sess))await putBet(id);
+}
+let settling=false;
+async function settleMine(){
+ const u=cu();if(!u||settling)return;
+ settling=true;
+ try{
+  const dirty=[];let won=0,lost=0;
+  for(const b of Object.values(BETS)){
+   if(b.user!==S.sess||b.status!=='pending')continue;
+   let touched=false;const unit=b.unit||b.stake;
+   for(const l of b.legs){
+    if(l.res)continue;const m=MB[l.mid];if(!m)continue;
+    const r=resOf(m);if(!r)continue;
+    const inf=optInfo(l.mid,l.oid);if(!inf.o)continue;
+    l.res=(inf.mk.half&&r.h1==null)?'void':(inf.o.t(r)?'won':'lost');touched=true;
+    if(b.type!=='acca'){
+     if(l.res==='won'){const x=r2(unit*l.odds);u.balance=r2(u.balance+x);b.paid=r2((b.paid||0)+x)}
+     else if(l.res==='void'){u.balance=r2(u.balance+unit);b.paid=r2((b.paid||0)+unit)}
+    }
+   }
+   if(!touched)continue;
+   const L=b.legs;
+   if(b.type==='acca'){
+    if(L.some(l=>l.res==='lost'))b.status='lost';
+    else if(L.every(l=>l.res)){
+     const ok=L.filter(l=>l.res==='won');
+     if(!ok.length){b.status='void';b.paid=b.stake}
+     else{b.odds=r2(ok.reduce((p,l)=>p*l.odds,1));b.paid=r2(b.stake*b.odds);b.status='won'}
+     u.balance=r2(u.balance+b.paid);
+    }
+   }else if(L.every(l=>l.res)){
+    b.status=L.some(l=>l.res==='won')?'won':(L.every(l=>l.res==='void')?'void':'lost');
+   }
+   if(b.status==='won')won++;else if(b.status==='lost')lost++;
+   dirty.push(b.id);
+  }
+  if(dirty.length){
+   USERS[S.sess]=u;saveLocal();renderAll();
+   if(await putUser(S.sess))for(const id of dirty)await putBet(id);
+   toast(t('settled',won,lost));
+  }
+ }finally{settling=false}
+}
+
+/* ---------- admin test simulation ---------- */
+function sample(l){const L=Math.exp(-l);let k=0,p=1;do{k++;p*=Math.random()}while(p>L);return k-1}
+function paint(m,goal){
+ if(S.view==='match'&&S.mid===m.id){const a=$('#score'),b=$('#evs');if(a)a.innerHTML=scoreHTML(m);if(b)b.innerHTML=evHTML(m)}
+ if(goal&&S.view==='home')renderMain();
+}
+function startSim(mid){
+ const m=MB[mid];if(!m||!isAdmin()||resOf(m)||LIVE[mid])return;
+ const all=[];
+ for(const side of ['h','a']){const n=sample(side==='h'?m.lh:m.la);for(let i=0;i<n;i++){const first=Math.random()<.45;all.push({min:first?1+Math.floor(Math.random()*45):46+Math.floor(Math.random()*45),side})}}
+ all.sort((x,y)=>x.min-y.min);
+ const L={min:0,h:0,a:0,pause:0,phase:'',ev:[],all};LIVE[mid]=L;
+ S.sel=S.sel.filter(s=>s.mid!==mid);
+ renderAll();
+ const timer=setInterval(async()=>{
+  if(L.pause>0){L.pause--;L.phase='HT';paint(m,false);return}
+  L.phase='';L.min++;let goal=false;
+  for(const e of L.all)if(e.min===L.min){L.ev.push(e);e.side==='h'?L.h++:L.a++;goal=true}
+  if(L.min===45)L.pause=12;
+  if(L.min>=90){
+   clearInterval(timer);
+   delete LIVE[mid];
+   if(REAL[mid]){renderAll();return}
+   RES[mid]={h:L.h,a:L.a,h1:L.all.filter(e=>e.side==='h'&&e.min<=45).length,a1:L.all.filter(e=>e.side==='a'&&e.min<=45).length,ev:L.all};
+   saveLocal();renderAll();
+   toast(t('final',m.home,L.h,L.a,m.away));
+   await putRes(mid);settleMine();
+   return;
+  }
+  paint(m,goal);
+ },55);
+}
+
+/* ---------- views ---------- */
+function rng(a){return function(){a|=0;a=a+0x6D2B79F5|0;let x=Math.imul(a^a>>>15,1|a);x=x+Math.imul(x^x>>>7,61|x)^x;return((x^x>>>14)>>>0)/4294967296}}
+const LOCALE=LOC;
+const inLeague=m=>{const f=S.league;return f==='all'||f===m.lg||(f.indexOf('c:')===0&&LG[m.lg].c===f.slice(2))};
+const scoreOf=m=>{const x=LIVE[m.id]||resOf(m);return x?[x.h,x.a]:null};
+function oddBtn(m,o,short){
+ const on=S.sel.some(s=>s.mid===m.id&&s.oid===o.id);
+ return `<button class="odd${on?' on':''}" data-act="pick" data-m="${m.id}" data-o="${esc(o.id)}"${locked(m)?' disabled':''}><span class="ol">${esc(short||o.l)}</span><span class="ov">${o.odds.toFixed(2)}</span></button>`;
+}
+function renderChrome(){
+ $('#strip').textContent=t('strip')+(DB?'':' · '+t('mode_local'));
+ document.documentElement.lang=LANG;
+}
+function renderHeader(){
+ const u=cu(),adm=isAdmin();
+ $('#hdr').innerHTML=`<div class="hin">
+  <button class="logo" data-act="home" aria-label="BettMarket"><span class="lg-mark"></span><span class="lg-txt">Bett<b>Market</b></span></button>
+  <div class="hnav"><button class="${S.view==='home'||S.view==='match'?'on':''}" data-act="home">${t('nav_matches')}</button>${u?`<button class="${S.view==='bets'?'on':''}" data-act="bets">${t('nav_bets')}</button>`:''}${adm?`<button class="${S.view==='admin'?'on':''}" data-act="admin">${t('nav_admin')}</button>`:''}</div>
+  <div class="hr"><div class="lang" role="group" aria-label="Language">${['sq','en','de'].map(l=>`<button class="${LANG===l?'on':''}" data-act="lang" data-v="${l}">${l.toUpperCase()}</button>`).join('')}</div>
+  <button class="btn ghost thm" data-act="theme" aria-label="${esc(t('theme_t'))}" title="${esc(t('theme_t'))}">◐</button>
+  ${u?`${adm?`<span class="note">${t('online_n',onlineNames().length)}</span>`:''}<div class="bal"><small>${t('bal')}</small><b>${gbp(u.balance)}</b></div>
+   <span class="who">${esc(u.name)}</span><button class="btn ghost" data-act="logout">${t('logout')}</button>`
+  :`<button class="btn brand" data-act="login">${S.last?t('login_as',esc(S.last)):t('login')}</button>`}</div></div>`;
+}
+function renderRail(){
+ $('#railsum').textContent=t('leagues');
+ const dm=MATCHES.filter(m=>!S.day||m.day===S.day);
+ let h=`<button class="chip${S.league==='all'?' on':''}" data-act="league" data-k="all">${t('all')} <i>${dm.length}</i></button>`;
+ for(const c of COUNTRIES){
+  const open=!!S.open[c],n=dm.filter(m=>LG[m.lg].c===c).length;
+  h+=`<button class="cty${open?' open':''}${S.league==='c:'+c?' on':''}" data-act="country" data-k="${c}">${FLAGS[c]}<span>${t('c_'+c)}</span><i>${n}</i><span class="car">${open?'▲':'▼'}</span></button>`;
+  if(open)h+=`<div class="sublg">${LEAGUES.filter(l=>l.c===c).map(l=>`<button class="chip${S.league===l.k?' on':''}" data-act="league" data-k="${l.k}"><span>${esc(l.n)}</span><i>${dm.filter(m=>m.lg===l.k).length}</i></button>`).join('')}</div>`;
+ }
+ $('#railin').innerHTML=h;
+}
+function statText(m){
+ const L=LIVE[m.id];
+ if(L)return L.phase==='HT'?'HT':L.min+"'";
+ if(resOf(m))return 'FT';
+ if(started(m))return Date.now()-m.ms<135*60000?t('st_inplay'):t('st_await');
+ return fmtTime(m);
+}
+const isLiveish=m=>!!LIVE[m.id]||(!resOf(m)&&started(m)&&Date.now()-m.ms<135*60000);
+function row(m){
+ const mkt=build(m),sc=scoreOf(m);
+ return `<div class="row"><button class="rtime${isLiveish(m)?' live':''}" data-act="open" data-m="${m.id}">${esc(statText(m))}</button>
+  <button class="rteams" data-act="open" data-m="${m.id}"><span>${esc(m.home)}${sc?`<em>${sc[0]}</em>`:''}</span><span>${esc(m.away)}${sc?`<em>${sc[1]}</em>`:''}</span></button>
+  <div class="rodds">${mkt[0].opts.map((o,i)=>oddBtn(m,o,['1','X','2'][i])).join('')}</div>
+  <button class="rmore" data-act="open" data-m="${m.id}" aria-label="${esc(t('open_all',mkt.length))}">+${mkt.length-1}</button></div>`;
+}
+function featCard(m){
+ const mkt=build(m),sc=scoreOf(m);
+ return `<section class="feat"><span class="tag">${t('feat_tag')} · ${esc(LG[m.lg].n)} · ${esc(fmtTime(m))}</span>
+  <div class="vs"><div class="tm">${esc(m.home)}</div><div class="mid">${sc?sc.join(' – '):'vs'}</div><div class="tm">${esc(m.away)}</div></div>
+  <div class="feat-odds">${mkt[0].opts.map(o=>oddBtn(m,o)).join('')}</div>
+  <div class="feat-foot"><button class="btn brand big" data-act="open" data-m="${m.id}">${t('open_all',mkt.length)}</button><span class="note">${t('feat_note')}</span></div></section>`;
+}
+function dayTab(k){
+ const today=dkey(Date.now());
+ return [k===today?t('today_w'):dayLabel(k,{weekday:'short'}),dayLabel(k,{day:'numeric',month:'short'})];
+}
+function renderHome(){
+ const vis=MATCHES.filter(m=>(!S.day||m.day===S.day)&&inLeague(m));
+ let h=`<div class="days" role="tablist"><button class="day${!S.day?' on':''}" data-act="day" data-d="all"><span>${t('all_dates')}</span><small>${DAYKEYS.length}</small></button>${DAYKEYS.map(k=>{const p=dayTab(k);return `<button class="day${S.day===k?' on':''}" data-act="day" data-d="${k}"><span>${esc(p[0])}</span><small>${esc(p[1])}</small></button>`}).join('')}</div>`;
+ const cand=!S.day?[]:vis.filter(m=>!resOf(m)&&!started(m)&&!m.timeOvr);
+ const feat=cand.slice().sort((a,b)=>b.strength-a.strength)[0];
+ if(feat)h+=featCard(feat);
+ h+=`<div class="sec-h"><h2>${S.league==='all'?t('nav_matches'):S.league.indexOf('c:')===0?t('c_'+S.league.slice(2)):esc(LG[S.league].n)}</h2><span>${S.day?esc(dayLabel(S.day,{weekday:'long',day:'numeric',month:'long'})):t('all_dates')}</span></div>`;
+ if(!vis.length)h+=`<div class="lock">${t('no_matches')}</div>`;
+ const blocks=(list)=>{let o='';for(const L of LEAGUES){
+  const ms=list.filter(m=>m.lg===L.k);if(!ms.length)continue;
+  o+=`<section class="lg-block"><div class="lg-h"><span>${esc(L.n)}</span><small>${t('c_'+L.c)}${L.tag?' · '+t(L.tag):''}</small></div>${ms.map(row).join('')}</section>`}return o};
+ if(S.day)h+=blocks(vis);
+ else for(const k of DAYKEYS){const dl=vis.filter(m=>m.day===k);if(!dl.length)continue;h+=`<h3 class="dg">${esc(dayLabel(k,{weekday:'long',day:'numeric',month:'long'}))}</h3>`+blocks(dl)}
+ return h;
+}
+function scoreHTML(m){
+ const L=LIVE[m.id],x=L||resOf(m);
+ if(!x){
+  if(started(m))return `<span class="clock">${esc(fmtTime(m))}</span><span class="sub${isLiveish(m)?' live':''}">${t(isLiveish(m)?'st_inplay':'st_await')}</span>`;
+  return `<span class="clock">${esc(fmtTime(m))}</span><span class="sub">${t('start')}</span>`;
+ }
+ if(L)return `<b>${x.h} – ${x.a}</b><span class="sub live">${x.phase==='HT'?t('ht'):x.min+"'"} · ${t('live')}</span>`;
+ return `<b>${x.h} – ${x.a}</b><span class="sub">${x.h1!=null?t('ft_line',x.h1,x.a1):'FT'}</span>`;
+}
+function evHTML(m){
+ const x=LIVE[m.id]||resOf(m);if(!x||!x.ev)return '';
+ return x.ev.map(e=>`<span><b>${e.min}'</b> ${t('goal')} ${esc(e.side==='h'?m.home:m.away)}</span>`).join('');
+}
+function editPanel(m){
+ if(!isAdmin())return '';
+ return `<section class="panel"><h3>${t('em_t')}</h3>
+  <div class="frm"><div class="fld"><label for="em-home">${t('em_home')}</label><input id="em-home" value="${esc(m.home)}" maxlength="30"></div>
+  <div class="fld"><label for="em-away">${t('em_away')}</label><input id="em-away" value="${esc(m.away)}" maxlength="30"></div>
+  <div class="fld"><label for="em-time">${t('em_time')}</label><input id="em-time" value="${esc(fmtTime(m))}" maxlength="5" placeholder="15:00"></div>
+  <button class="btn brand" data-act="savematch">${t('em_save')}</button></div>
+  <div class="row2"><button class="btn${S.editOdds?' pick':''}" data-act="editodds">${S.editOdds?t('em_done'):t('em_odds')}</button>
+  ${S.editOdds?`<button class="btn brand" data-act="saveodds">${t('em_odds_save')}</button><button class="btn ghost" data-act="resetodds">${t('em_odds_reset')}</button>`:''}
+  <span class="note">${t('em_hint')}</span></div>
+  ${(!resOf(m)&&!LIVE[m.id])?`<div class="row2"><button class="btn ghost" data-act="sim" data-m="${m.id}">${t('sim')}</button><span class="note">${t('sim_note')}</span></div>`:''}</section>`;
+}
+function optCell(m,o){
+ if(S.editOdds&&isAdmin())return `<label class="oedit"><span>${esc(o.l)}</span><input type="number" step="0.01" min="1.01" inputmode="decimal" data-oid="${esc(o.id)}" data-base="${o.base}" value="${o.odds}" class="${o.odds!==o.base?'chg':''}"></label>`;
+ return oddBtn(m,o);
+}
+function renderMatch(m){
+ const mkt=build(m).filter(x=>x.tabs.includes(S.tab)),lk=locked(m);
+ return `<section class="sb"><div class="sb-top"><button class="btn ghost" data-act="home">${t('back')}</button><span>${esc(LG[m.lg].n)} · ${esc(dayLabel(m.day,{weekday:'short',day:'numeric',month:'short'}))} · ${esc(fmtTime(m))}</span></div>
+  <div class="sb-grid"><div class="tm">${esc(m.home)}</div><div id="score">${scoreHTML(m)}</div><div class="tm">${esc(m.away)}</div></div>
+  <div id="evs">${evHTML(m)}</div>
+  ${lk?`<div class="lock">${LIVE[m.id]?t('lock_live'):resOf(m)?t('lock_done'):t('e_closed')}</div>`:''}
+  </section>${editPanel(m)}
+  <div class="tabs" role="tablist">${TABS.map(k=>`<button role="tab" class="${S.tab===k?'on':''}" data-act="tab" data-t="${k}">${t('tab_'+k)}</button>`).join('')}</div>
+  <div class="mlist">${mkt.map(x=>`<section class="mkt${x.wide?' wide':''}"><h3>${esc(x.title)}</h3><div class="mgrid c${x.cols}">${x.opts.map(o=>optCell(m,o)).join('')}</div></section>`).join('')}</div>`;
+}
+
+/* ---------- tickets ---------- */
+function bars(id){
+ let a=5381;for(let i=0;i<id.length;i++)a=((a*33)^id.charCodeAt(i))>>>0;
+ const r=rng(a),out=[];let x=0;
+ while(x<200){const w=1+Math.floor(r()*3);out.push([x,w]);x+=w+1+Math.floor(r()*2)}
+ return out;
+}
+function barSVG(id){
+ const b=bars(id),W=b[b.length-1][0]+b[b.length-1][1];
+ return `<svg viewBox="0 0 ${W} 30" preserveAspectRatio="none" aria-hidden="true">${b.map(p=>`<rect x="${p[0]}" width="${p[1]}" height="30" fill="currentColor"/>`).join('')}</svg>`;
+}
+function legInfo(l){
+ const m=MB[l.mid];
+ if(!m)return{sel:l.oid,mt:'',nm:'—',odds:l.odds,res:l.res};
+ const inf=optInfo(l.mid,l.oid);
+ return{sel:inf.o?inf.o.l:l.oid,mt:inf.mk?inf.mk.title:'',nm:m.home+' - '+m.away,odds:l.odds,res:l.res};
+}
+function tkTotals(b){
+ const unit=b.unit||b.stake,n=b.legs.length;
+ let label,ret;
+ if(b.type==='acca')label=[t('acca',n),t('odds')+' '+b.odds.toFixed(2)];
+ else if(b.type==='multi')label=[t('single_n',n,gbp(unit)),''];
+ else label=[t('single'),t('odds')+' '+b.legs[0].odds.toFixed(2)];
+ if(b.status==='pending'){
+  ret=b.type==='acca'?b.stake*b.odds:b.legs.reduce((p,l)=>p+(l.res==='lost'?0:unit*l.odds),0);
+ }else ret=b.paid||0;
+ const rl=b.status==='won'?t('won_l'):b.status==='lost'?t('ret_l'):b.status==='void'?t('st_void'):t('ret_poss');
+ return{label,ret,rl};
+}
+function ticket(b){
+ const tm=new Date(b.ts).toLocaleTimeString(LOCALE(),{hour:'2-digit',minute:'2-digit'});
+ const legs=b.legs.map(l=>{const i=legInfo(l);return `<div class="tk-leg"><b>${esc(i.sel)}</b><span class="o">${i.odds.toFixed(2)}</span><small>${esc(i.mt)} · ${esc(i.nm)}</small><span class="m ${i.res||''}">${i.res?t('st_'+i.res):''}</span></div>`}).join('');
+ const T=tkTotals(b);
+ const openId=(b.legs.find(l=>!l.res&&MB[l.mid])||b.legs.find(l=>MB[l.mid])||{}).mid;
+ return `<article class="tk"><div class="tk-h"><span class="tk-logo">BettMarket</span><span class="tk-id">#${esc(b.id)}</span></div>
+  <div class="tk-meta"><span>${esc(dayLabel(dkey(b.ts),{day:'2-digit',month:'short',year:'numeric'}))} · ${esc(tm)}</span><span>${t('tk_by')}: ${esc(b.uname||b.user)}</span></div>
+  ${legs}
+  <div class="tk-sum"><div><span>${esc(T.label[0])}</span><b>${esc(T.label[1])}</b></div>
+   <div><span>${t('stake')}</span><b>${gbp(b.stake)}</b></div>
+   <div><span>${T.rl}</span><b>${gbp(T.ret)}</b></div></div>
+  ${b.status!=='pending'?`<div class="tk-stamp ${b.status}">${t('st_'+b.status)}</div>`:''}
+  <div class="tk-bar">${barSVG(b.id)}</div>
+  <div class="tk-act"><button class="btn" data-act="dl" data-b="${esc(b.id)}">${t('dl')}</button>${b.status==='pending'&&openId?`<button class="btn" data-act="open" data-m="${openId}">${t('open_m')}</button>`:''}</div></article>`;
+}
+async function ticketPNG(b){
+ try{await document.fonts.load('800 40px "Big Shoulders Display"');await document.fonts.load('600 14px "IBM Plex Mono"')}catch(e){}
+ const W=640,pad=34,legs=b.legs.map(legInfo),T=tkTotals(b),stamp=b.status!=='pending';
+ const H=pad+104+legs.length*66+12+84+6+(stamp?64:0)+56+pad,sc=2;
+ const cv=document.createElement('canvas');cv.width=W*sc;cv.height=H*sc;
+ const g=cv.getContext('2d');g.scale(sc,sc);
+ const MONO='"IBM Plex Mono",ui-monospace,monospace',DISP='"Big Shoulders Display","Arial Narrow",Impact,sans-serif';
+ const fit=(s,w)=>{if(g.measureText(s).width<=w)return s;while(s.length>1&&g.measureText(s+'…').width>w)s=s.slice(0,-1);return s+'…'};
+ g.fillStyle='#FAF8F1';g.fillRect(0,0,W,H);
+ g.fillStyle='#1A1A16';g.textBaseline='alphabetic';
+ g.font='800 44px '+DISP;g.textAlign='left';g.fillText('BETTMARKET',pad,pad+38);
+ g.font='600 14px '+MONO;g.textAlign='right';g.fillText('#'+b.id,W-pad,pad+36);
+ g.fillRect(pad,pad+52,W-2*pad,2);
+ g.font='500 12px '+MONO;g.fillStyle='#6A685D';g.textAlign='left';
+ g.fillText(new Date(b.ts).toLocaleString(LOCALE(),{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}),pad,pad+78);
+ g.textAlign='right';g.fillText(t('tk_by')+': '+(b.uname||b.user),W-pad,pad+78);
+ let y=pad+104;
+ legs.forEach(i=>{
+  g.strokeStyle='#CFCABA';g.setLineDash([4,4]);g.beginPath();g.moveTo(pad,y-14);g.lineTo(W-pad,y-14);g.stroke();g.setLineDash([]);
+  g.textAlign='left';g.fillStyle='#1A1A16';g.font='600 16px '+MONO;g.fillText(fit(i.sel,W-2*pad-90),pad,y+6);
+  g.textAlign='right';g.fillText(i.odds.toFixed(2),W-pad,y+6);
+  g.textAlign='left';g.fillStyle='#6A685D';g.font='500 12px '+MONO;g.fillText(fit(i.mt,W-2*pad-90),pad,y+26);g.fillText(fit(i.nm,W-2*pad-90),pad,y+43);
+  if(i.res){g.textAlign='right';g.font='600 12px '+MONO;g.fillStyle=i.res==='won'?'#0A7A44':i.res==='lost'?'#B33A2C':'#6A685D';g.fillText(t('st_'+i.res).toUpperCase(),W-pad,y+26)}
+  y+=66;
+ });
+ g.fillStyle='#1A1A16';g.fillRect(pad,y-12,W-2*pad,2);
+ const line=(a,v)=>{g.textAlign='left';g.font='500 14px '+MONO;g.fillStyle='#1A1A16';g.fillText(a,pad,y+14);g.textAlign='right';g.font='600 15px '+MONO;g.fillText(v,W-pad,y+14);y+=28};
+ line(T.label[0],T.label[1]);
+ line(t('stake'),gbp(b.stake));
+ line(T.rl,gbp(T.ret));
+ y+=6;
+ if(stamp){
+  const col=b.status==='won'?'#0A7A44':b.status==='lost'?'#B33A2C':'#6A685D',tx=t('st_'+b.status).toUpperCase();
+  g.save();g.translate(W/2,y+22);g.rotate(-0.07);g.strokeStyle=col;g.fillStyle=col;g.lineWidth=3;
+  g.font='800 30px '+DISP;g.textAlign='center';const tw=g.measureText(tx).width;
+  g.strokeRect(-tw/2-16,-26,tw+32,44);g.fillText(tx,0,6);g.restore();
+  y+=64;
+ }
+ const bb=bars(b.id),bw=bb[bb.length-1][0]+bb[bb.length-1][1],k=(W-2*pad)/bw;
+ g.fillStyle='#1A1A16';bb.forEach(p=>g.fillRect(pad+p[0]*k,y,p[1]*k,56));
+ return new Promise(res=>cv.toBlob(res,'image/png'));
+}
+async function dlTicket(id){
+ const b=BETS[id];if(!b)return;
+ let blob;
+ try{blob=await ticketPNG(b)}catch(e){return toast(t('dl_fail'))}
+ if(DL){
+  try{await DL.save({filename:'BettMarket-'+b.id+'.png',data:blob});toast(t('dl_ok'));return}
+  catch(e){if(e&&e.code==='declined')return}
+ }
+ S.dlg={type:'img',url:URL.createObjectURL(blob),name:'BettMarket-'+b.id+'.png'};renderModal();
+}
+function renderBets(){
+ const h=`<div class="sec-h"><h2>${t('bets_t')}</h2></div>`;
+ if(!cu())return h+`<div class="lock">${t('see_bets')} <button class="btn brand" data-act="login">${t('login')}</button></div>`;
+ const mine=Object.values(BETS).filter(b=>b.user===S.sess).sort((a,b)=>b.ts-a.ts);
+ if(!mine.length)return h+`<div class="lock">${t('no_bets')}</div>`;
+ let out=h,cur='';
+ for(const b of mine){
+  const k=dkey(b.ts);
+  if(k!==cur){if(cur)out+='</div>';cur=k;out+=`<h3 class="dg">${esc(dayLabel(k,{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</h3><div class="blist">`}
+  out+=ticket(b);
+ }
+ return out+'</div>';
+}
+
+/* ---------- admin panel and side card ---------- */
+function acctForms(p){
+ const players=Object.entries(USERS).filter(e=>e[0]!==S.sess).sort((a,b)=>a[1].name.localeCompare(b[1].name));
+ return `<section class="panel"><h3>${t('ad_new')}</h3><div class="frm">
+   <div class="fld"><label for="${p}-user">${t('ad_user')}</label><input id="${p}-user" maxlength="20" autocomplete="off" autocapitalize="off"></div>
+   <div class="fld"><label for="${p}-pass">${t('ad_pass')}</label><input id="${p}-pass" type="text" autocomplete="off"></div>
+   <div class="fld"><label for="${p}-amt">${t('ad_amt')}</label><input id="${p}-amt" type="number" min="0" step="1" value="0" inputmode="decimal"></div>
+   <button class="btn brand" data-act="createuser" data-p="${p}">${t('ad_create')}</button></div><p class="note">${t('ad_start_note')}</p></section>
+  <section class="panel"><h3>${t('ad_xfer')}</h3><div class="frm">
+   <div class="fld"><label for="${p}-to">${t('ad_to')}</label><select id="${p}-to">${players.map(e=>`<option value="${esc(e[0])}">${esc(e[1].name)}</option>`).join('')}</select></div>
+   <div class="fld"><label for="${p}-amt2">${t('ad_amt2')}</label><input id="${p}-amt2" type="number" min="1" step="1" value="500" inputmode="decimal"></div>
+   <button class="btn pick" data-act="xfer" data-p="${p}">${t('ad_send')}</button></div></section>`;
+}
+function renderAdmin(){
+ if(!isAdmin())return `<div class="lock">${t('nav_admin')}</div>`;
+ const me=cu(),list=Object.entries(USERS).sort((a,b)=>(a[1].role==='admin'?0:1)-(b[1].role==='admin'?0:1)||a[1].name.localeCompare(b[1].name));
+ const on=new Set(onlineNames().map(n=>n.toLowerCase()));
+ return `<div class="sec-h"><h2>${t('ad_t')}</h2><span>${t('bal')}: <b>${gbp(me.balance)}</b></span></div>
+ <div class="panels">${acctForms('ad')}</div>
+ <section class="panel"><h3>${t('ad_accts')}</h3><div class="tblw"><table class="tbl"><thead><tr><th>${t('th_user')}</th><th>${t('th_role')}</th><th class="num">${t('th_bal')}</th><th>${t('th_on')}</th></tr></thead><tbody>
+ ${list.map(e=>{const u=e[1],o=on.has(e[0]);return `<tr><td>${esc(u.name)}${e[0]===S.sess?' ('+t('ad_you')+')':''}</td><td>${u.role==='admin'?t('ad_role_admin'):t('ad_role_user')}</td><td class="num">${gbp(u.balance)}</td><td><span class="dot${o?'':' off'}"></span></td></tr>`}).join('')}
+ </tbody></table></div></section>`;
+}
+function renderSide(){
+ const el=$('#adm');if(!el)return;
+ if(!isAdmin()){el.innerHTML='';el.hidden=true;return}
+ const keep={};el.querySelectorAll('input,select').forEach(i=>{keep[i.id]=i.value});
+ const on=onlineNames();
+ el.hidden=false;
+ el.innerHTML=`<div class="sidecard"><div class="sc-h"><h2>${t('ad_t')}</h2><b>${gbp(cu().balance)}</b></div>
+  <div class="onl"><h3>${t('ad_online')} · ${on.length}</h3>${on.map(n=>`<div><span class="dot"></span>${esc(n)}</div>`).join('')||`<span class="note">${t('ad_none')}</span>`}</div>
+  ${acctForms('q')}</div>`;
+ el.querySelectorAll('input,select').forEach(i=>{if(keep[i.id]!==undefined&&(i.tagName!=='SELECT'||[...i.options].some(o=>o.value===keep[i.id])))i.value=keep[i.id]});
+}
+function renderMain(){
+ let h;
+ if(S.view==='match'&&MB[S.mid])h=renderMatch(MB[S.mid]);
+ else if(S.view==='bets')h=renderBets();
+ else if(S.view==='admin')h=renderAdmin();
+ else h=renderHome();
+ $('#main').innerHTML=h;
+}
+
+/* ---------- bet slip ---------- */
+function updTotals(){const c=calc();const a=$('#t-stake'),b=$('#t-ret');if(a)a.textContent=gbp(c.stake);if(b)b.textContent=gbp(c.ret)}
+function renderSlip(){
+ const c=calc(),u=cu();
+ let b;
+ if(!c.n)b=`<p class="empty">${t('slip_empty')}</p>`;
+ else b=`<div class="seg"><button class="${S.mode==='single'?'on':''}" data-act="mode" data-v="single">${t('singles')}</button><button class="${S.mode==='acca'?'on':''}" data-act="mode" data-v="acca"${c.canAcca?'':' disabled'}>${t('accas')}</button></div>
+  ${c.n>1&&!c.canAcca?`<p class="note">${t('acca_need')}</p>`:''}
+  <div>${S.sel.map((s,i)=>{const inf=optInfo(s.mid,s.oid),m=MB[s.mid];return `<div class="sel"><b>${esc(inf.o.l)}</b><span class="o">${s.odds.toFixed(2)}</span><button class="rm" data-act="rm" data-i="${i}" aria-label="×">×</button><small>${esc(inf.mk.title)} · ${esc(m.home+' - '+m.away)}</small></div>`}).join('')}</div>
+  <div class="stake"><label for="stake">${S.mode==='acca'?t('stake_one'):t('stake_each')}</label><div class="in">£<input id="stake" type="number" inputmode="decimal" min="1" step="1" value="${esc(S.stake)}"></div>
+  <div class="qs">${[10,50,100,500,1000].map(v=>`<button data-act="qs" data-v="${v}">£${v}</button>`).join('')}</div></div>
+  <div class="tot">${S.mode==='acca'?`<div><span>${t('t_odds')}</span><b>${c.odds.toFixed(2)}</b></div>`:''}<div><span>${t('t_stake')}</span><b id="t-stake">${gbp(c.stake)}</b></div><div class="big"><span>${t('t_ret')}</span><b id="t-ret">${gbp(c.ret)}</b></div></div>
+  <button class="btn brand big full" data-act="place">${u?t('place'):t('place_login')}</button>
+  ${u?`<p class="note">${t('balance')} ${gbp(u.balance)}</p>`:''}`;
+ $('#slip').innerHTML=`<div class="slip-h"><h2>${t('slip_t')}</h2><span class="cnt">${c.n}</span><button class="x" data-act="slipclose" aria-label="×">×</button></div><div class="slip-b">${b}</div>`;
+ $('#slip').classList.toggle('open',S.slipOpen&&c.n>0);
+ const bar=$('#slipbar');bar.classList.toggle('show',c.n>0&&!S.slipOpen);
+ bar.innerHTML=`<span>${t('slip_t')} (${c.n})</span><b>${gbp(c.ret)}</b>`;
+}
+
+/* ---------- modal: login, theme, ticket image ---------- */
+function renderModal(){
+ const el=$('#modal');
+ if(S.dlg){
+  el.hidden=false;
+  if(S.dlg.type==='theme'){
+   const th=[['auto','th_auto'],['light','th_light'],['dark','th_dark']],ac=[['green','ac_green'],['orange','ac_orange'],['blue','ac_blue'],['brown','ac_brown']];
+   el.innerHTML=`<div data-act="closemodal" style="position:absolute;inset:0"></div><div class="card" style="position:relative"><h2>${t('theme_t')}</h2>
+    <div class="seg">${th.map(x=>`<button class="${THEME===x[0]?'on':''}" data-act="setmode" data-v="${x[0]}">${t(x[1])}</button>`).join('')}</div>
+    <h3 class="sub-h">${t('th_color')}</h3>
+    <div class="swatches">${ac.map(x=>`<button class="sw sw-${x[0]}${ACCENT===x[0]?' on':''}" data-act="setaccent" data-v="${x[0]}"><i></i>${t(x[1])}</button>`).join('')}</div>
+    <button class="btn ghost" data-act="closemodal">OK</button></div>`;
+  }else{
+   el.innerHTML=`<div data-act="closemodal" style="position:absolute;inset:0"></div><div class="card" style="position:relative"><h2>BettMarket</h2>
+    <img class="tkimg" src="${S.dlg.url}" alt="ticket"><p class="note">${t('img_hint')}</p>
+    <a class="btn brand" href="${S.dlg.url}" download="${esc(S.dlg.name)}">${t('dl')}</a><button class="btn ghost" data-act="closemodal">OK</button></div>`;
+  }
+  return;
+ }
+ if(!S.auth){el.hidden=true;el.innerHTML='';return}
+ const fixed=S.last&&!S.auth.change,setup=!Object.keys(USERS).some(k=>k===ADMIN);
+ el.hidden=false;
+ el.innerHTML=`<div data-act="closemodal" style="position:absolute;inset:0"></div><form class="card" id="authform" style="position:relative" novalidate>
+  <h2>${t('a_login')}</h2>
+  ${fixed?`<div class="hintbox">${t('login_as','<b>'+esc(S.last)+'</b>')}</div>`:''}
+  <div class="err" id="au-err"></div>
+  ${fixed?'':`<div class="fld"><label for="au-user">${t('a_user')}</label><input id="au-user" autocomplete="username" maxlength="20" autocapitalize="off"></div>`}
+  <div class="fld"><label for="au-pass">${t('a_pass')}</label><input id="au-pass" type="password" autocomplete="current-password"></div>
+  ${setup?`<div class="hintbox">${t('a_setup')}</div>`:`<div class="hintbox">${t('a_nores')}</div>`}
+  <button class="btn brand big" type="submit">${t('a_enter')}</button>
+  ${fixed?`<button class="btn ghost" type="button" data-act="changeuser">${t('a_change')}</button>`:''}</form>`;
+}
+function renderAll(){applyTheme();renderChrome();renderHeader();renderRail();renderMain();renderSide();renderSlip();renderModal()}
+
+/* ---------- events ---------- */
+const top0=()=>window.scrollTo(0,0);
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;
+ const a=b.dataset.act;
+ if(a==='closemodal'&&e.target!==b)return;
+ switch(a){
+  case 'home':S.view='home';S.mid=null;S.editOdds=false;renderAll();top0();break;
+  case 'bets':S.view='bets';renderAll();top0();break;
+  case 'admin':S.view='admin';renderAll();top0();break;
+  case 'day':S.day=b.dataset.d==='all'?null:b.dataset.d;S.view='home';renderAll();break;
+  case 'league':S.league=b.dataset.k;if(b.dataset.k!=='all')S.day=null;S.view='home';renderAll();break;
+  case 'country':{const c=b.dataset.k;
+   if(S.open[c]){S.open[c]=false;if(S.league==='c:'+c||LG[S.league]&&LG[S.league].c===c)S.league='all'}
+   else{S.open[c]=true;S.league='c:'+c;S.day=null}
+   S.view='home';renderAll();break}
+  case 'open':S.view='match';S.mid=b.dataset.m;S.tab='main';S.editOdds=false;renderAll();top0();break;
+  case 'tab':S.tab=b.dataset.t;renderMain();break;
+  case 'pick':pick(b.dataset.m,b.dataset.o);break;
+  case 'rm':S.sel.splice(+b.dataset.i,1);renderMain();renderSlip();break;
+  case 'mode':S.mode=b.dataset.v;renderSlip();break;
+  case 'qs':S.stake=b.dataset.v;renderSlip();break;
+  case 'place':place();break;
+  case 'sim':startSim(b.dataset.m);break;
+  case 'slipopen':S.slipOpen=true;renderSlip();break;
+  case 'slipclose':S.slipOpen=false;renderSlip();break;
+  case 'lang':LANG=b.dataset.v;sv('bm_lang',LANG);renderAll();break;
+  case 'theme':S.dlg={type:'theme'};renderModal();break;
+  case 'setmode':THEME=b.dataset.v;sv('bm_theme',THEME);applyTheme();renderModal();break;
+  case 'setaccent':ACCENT=b.dataset.v;sv('bm_accent',ACCENT);applyTheme();renderModal();break;
+  case 'login':openAuth(false);break;
+  case 'changeuser':openAuth(true);break;
+  case 'closemodal':closeModal();break;
+  case 'logout':logout();break;
+  case 'createuser':createUser(b.dataset.p);break;
+  case 'xfer':transfer(b.dataset.p);break;
+  case 'savematch':saveMatch();break;
+  case 'editodds':S.editOdds=!S.editOdds;renderMain();break;
+  case 'saveodds':saveOdds(false);break;
+  case 'resetodds':saveOdds(true);break;
+  case 'dl':dlTicket(b.dataset.b);break;
+ }
+});
+document.addEventListener('input',e=>{
+ if(e.target.id==='stake'){S.stake=e.target.value;updTotals()}
+ if(e.target.dataset&&e.target.dataset.oid){e.target.classList.toggle('chg',Math.abs(parseFloat(e.target.value)-parseFloat(e.target.dataset.base))>1e-9)}
+});
+document.addEventListener('submit',e=>{if(e.target.id==='authform'){e.preventDefault();doAuth()}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&(S.auth||S.dlg))closeModal()});
+
+/* ---------- start ---------- */
+$('#railbox').open=window.innerWidth>1040;
+renderAll();
+setInterval(()=>{if(!S.auth&&!S.dlg)softRender();settleMine()},60000);
+(async function connect(){
+ if(!(window.claude&&claude.use))return;
+ try{DL=await claude.use('downloads')}catch(e){}
+ try{UC=await claude.use('user')}catch(e){}
+ try{DB=await claude.use('db')}catch(e){DB=null}
+ try{ROOM=await claude.use('room')}catch(e){ROOM=null}
+ if(DB){
+  USERS={};BETS={};RES={};OVR={};REAL={};
+  const sub=(col,fn)=>DB.collection(col).onSnapshot(snap=>{fn(snap);softRender();settleMine()},()=>{});
+  const fill=(o,s)=>{for(const k in o)delete o[k];s.docs.forEach(d=>{o[d.id]=clone(d.data())})};
+  sub('users',s=>{const keep=cu()&&USERS[S.sess];fill(USERS,s);if(S.sess&&!USERS[S.sess]&&keep&&false)USERS[S.sess]=keep});
+  sub('bets',s=>fill(BETS,s));
+  sub('results',s=>fill(RES,s));
+  sub('real',s=>fill(REAL,s));
+  sub('ovr',s=>{fill(OVR,s);MATCHES.forEach(applyOvr)});
+ }
+ if(ROOM){ROOM.onPeers(()=>{if(isAdmin())softRender()},()=>{});setPresence()}
+ renderAll();
+})();
+
+
+})();</script>
+</body>
+</html>
